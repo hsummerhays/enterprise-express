@@ -1,6 +1,6 @@
 # 🗄️ Database Connection Guidance
 
-This guide provides instructions and boilerplate for connecting your Express backend to **MongoDB** and **PostgreSQL**.
+This guide provides instructions and boilerplate for connecting your TypeScript Express backend to **MongoDB** and **PostgreSQL**.
 
 ---
 
@@ -8,27 +8,28 @@ This guide provides instructions and boilerplate for connecting your Express bac
 
 MongoDB is a document-oriented database that is highly flexible.
 
-### Recommended Library: `mongoose` or `mongodb`
+### Recommended Library: `mongoose`
 
 ```bash
 npm install mongoose
+npm install --save-dev @types/mongoose
 ```
 
-### Connection Boilerplate (`src/utils/db.js`)
+### Connection Boilerplate (`src/utils/db.ts`)
 
-```javascript
+```typescript
 import mongoose from 'mongoose';
 import logger from './logger.js';
 
-export const connectMongo = async () => {
+export const connectMongo = async (): Promise<void> => {
     try {
         const uri = process.env.MONGODB_URI;
         if (!uri) throw new Error('MONGODB_URI is not defined');
         
         await mongoose.connect(uri);
-        logger.info('Successfully connected to MongoDB');
+        logger.info('🚀 Successfully connected to MongoDB');
     } catch (error) {
-        logger.error('MongoDB connection error:', error);
+        logger.error('❌ MongoDB connection error:', error);
         process.exit(1);
     }
 };
@@ -44,36 +45,12 @@ PostgreSQL is a powerful, open-source relational database.
 
 ```bash
 npm install pg
+npm install --save-dev @types/pg
 ```
 
-### 2.2 Using an ORM: Prisma (Highly Recommended)
+### Connection Boilerplate (using `pg` driver)
 
-Prisma is a next-generation Node.js and TypeScript ORM. It provides a clean API for database access and automated migrations.
-
-#### Installation
-```bash
-npm install prisma @prisma/client
-npx prisma init
-```
-
-#### Configuration (`prisma/schema.prisma`)
-Modify the datasource to point to your environment variable:
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-#### Connection Boilerplate (`src/utils/db.js`)
-```javascript
-import { PrismaClient } from '@prisma/client';
-export const prisma = new PrismaClient();
-```
-
-### Connection Boilerplate (using `pg`)
-
-```javascript
+```typescript
 import pkg from 'pg';
 const { Pool } = pkg;
 import logger from './logger.js';
@@ -82,14 +59,14 @@ const pool = new Pool({
     connectionString: process.env.POSTGRES_URI,
 });
 
-export const query = (text, params) => pool.query(text, params);
+export const dbQuery = (text: string, params?: any[]) => pool.query(text, params);
 
 pool.on('connect', () => {
-    logger.info('Connected to PostgreSQL');
+    logger.info('🐘 Connected to PostgreSQL');
 });
 
-pool.on('error', (err) => {
-    logger.error('Unexpected error on idle PostgreSQL client', err);
+pool.on('error', (err: Error) => {
+    logger.error('❌ Unexpected error on idle PostgreSQL client', err);
     process.exit(-1);
 });
 ```
@@ -110,13 +87,15 @@ POSTGRES_URI=postgresql://user:password@localhost:5432/your_db
 
 ---
 
-## 4. Integration in `server.js`
+## 4. Integration in `server.ts`
 
 To initialize the connection on startup:
 
-```javascript
+```typescript
 import { connectMongo } from './utils/db.js';
 
 // ... after logger setup
 await connectMongo();
 ```
+
+To ensure connections are closed correctly during graceful shutdown, ensure `disconnectDatabase()` is called in your shutdown logic.

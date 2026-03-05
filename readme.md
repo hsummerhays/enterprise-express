@@ -8,7 +8,7 @@ A modern Node.js backend environment optimized for Windows 11 WSL2 and Google An
 - **Runtime**: [Node.js v24.x](https://nodejs.org/) (ESM mode)
 - **Web App**: [Express 5](https://expressjs.com/)
 - **Validation**: [Zod](https://zod.dev/)
-- **ORM**: [Prisma](https://www.prisma.io/)
+- **Database**: In-memory storage (Extensible to MongoDB/PostgreSQL).
 - **Documentation**: [Zod-to-OpenAPI](https://github.com/asteasolutions/zod-to-openapi) 
 - **Logging**: [Winston](https://github.com/winstonjs/winston)
 - **Testing**: [Vitest](https://vitest.dev/) & [Supertest](https://github.com/ladjs/supertest)
@@ -20,7 +20,7 @@ A modern Node.js backend environment optimized for Windows 11 WSL2 and Google An
 - **Security Headers**: [Helmet](https://helmetjs.github.io/) to secure your Express app.
 - **Standardized Responses**: Unified JSON API responses.
 
-## 🚀 Rapid Ignite
+## 🚀 Rapid Setup
 
 ```bash
 # 1. Install dependencies
@@ -29,11 +29,7 @@ npm install
 # 2. Setup environment (if not using WSL mirrored mode)
 cp .env.example .env
 
-# 3. Initialize Database (Prisma)
-npx prisma migrate dev --name init
-npm run seed
-
-# 4. Burn the ignition
+# 3. Ready to go
 npm run dev
 ```
 For complete instructions on configuring Windows 11 WSL2 and Google Antigravity to run this project natively on Ubuntu, please read the [WSL & Antigravity Setup Guide](./wsl-setup.md).

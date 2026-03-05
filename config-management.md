@@ -1,69 +1,64 @@
 # ⚙️ Configuration Management Guide
 
-This project utilizes the `config` library paired with **Zod** to manage and validate environment-specific settings.
+This project utilizes the `config` library (node-config) paired with **Zod** to manage and validate type-safe, environment-specific settings.
 
 ---
 
-## 1. How it Works
+## 1. Multi-Layer Hierarchy
 
-The `config` library loads configurations from the `./config/` directory based on the current `NODE_ENV`. It follows a hierarchical merge strategy:
+The configuration system follows a hierarchical merge strategy to ensure flexibility across development, testing, and production.
 
-1.  **`default.json`**: Base configuration shared across all environments.
-2.  **`{NODE_ENV}.json`**: (e.g., `production.json`, `development.json`) Overrides the base values for that specific environment.
-3.  **`custom-environment-variables.json`**: Maps specific system environment variables (like `PORT`) to configuration keys.
+1.  **`config/default.json`**: The base structure and common values shared across all environments.
+2.  **`config/{NODE_ENV}.json`**: (e.g., `production.json`, `development.json`) Overrides the base values for specific environments.
+3.  **`config/custom-environment-variables.json`**: Maps system environment variables (from `.env` or the OS) to specific configuration keys. This is critical for **Secrets** (like JWT keys).
 
 ---
 
-## 2. Using Configuration in Code
+## 2. Environment Variables & `.env`
 
-Instead of directly accessing `process.env.VARIABLE`, you should import and use the validated configuration from `src/utils/config.js`:
+While structural config lives in JSON files, **Secrets and machine-specific overrides** live in the `.env` file. 
 
-```javascript
-import config from './utils/config.js';
+This project uses **Node.js 24+ native environment file support**. We load variables via the `--env-file` flag in `package.json`:
 
-const port = config.app.port;
+```bash
+# Example from package.json
+tsx watch --env-file=.env src/server.ts
 ```
 
----
-
-## 3. Configuration Validation (Startup Check)
-
-The project includes a startup validation step in `src/utils/config.js` using Zod. This ensures that the application **fails fast** if any required configuration is missing or invalid.
-
-### Updating the Schema
-If you add new config keys, you must update the Zod schema in `src/utils/config.js`:
-
-```javascript
-const configSchema = z.object({
-  app: z.object({
-    port: z.number().int(),
-    env: z.string()
-  }),
-  // Add new sections here
-});
-```
-
----
-
-## 4. Environment Variables Mapping
-
-To map an environment variable to a config key, update `config/custom-environment-variables.json`:
+### Mapping Example
+To link a variable like `JWT_SECRET` to the app config, it is registered in `custom-environment-variables.json`:
 
 ```json
 {
-  "app": {
-    "port": "PORT"
+  "auth": {
+    "jwtSecret": "JWT_SECRET"
   }
 }
 ```
-*Note: In the example above, the value of the `PORT` environment variable will override `app.port` during runtime.*
 
 ---
 
-## 5. Adding a New Environment
+## 3. Type-Safe Access & Validation
 
-To add a new environment (e.g., `staging`):
+Instead of directly accessing `process.env`, always import the validated configuration from `src/utils/config.ts`. 
 
-1.  Create `config/staging.json`.
-2.  Set `NODE_ENV=staging` before running the app.
-3.  The values in `staging.json` will merge over `default.json`.
+### The "Fail-Fast" Mechanism
+On application startup, the system validates the merged configuration against a **Zod schema**. If a required value (like a secret) is missing or has the wrong type, the application will exit immediately with a descriptive error.
+
+```typescript
+import config from '#utils/config';
+
+const port = config.app.port; // Autocomplete and type safety included
+```
+
+---
+
+## 4. Maintenance
+
+### Adding New Config Keys
+1.  Add the key and a default value to `config/default.json`.
+2.  Update the `configSchema` in `src/utils/config.ts` to include the new key.
+3.  (Optional) Add a mapping in `custom-environment-variables.json` if it should be overridable via `.env`.
+
+### Troubleshooting
+If the app fails to start with a "Configuration validation failed" error, check your `.env` file against the schema requirements defined in `src/utils/config.ts`.

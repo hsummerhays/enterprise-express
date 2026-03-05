@@ -6,7 +6,7 @@ import { disconnectDatabase } from './utils/db.js';
 const PORT = config.app.port || 3000;
 
 const server = app.listen(PORT, () => {
-    logger.info('Express server successfully ignited (TypeScript)', {
+    logger.info('Express server successfully started (TypeScript)', {
         port: PORT,
         env: config.app.env,
         wsl_mode: 'mirrored'
