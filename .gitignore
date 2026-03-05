@@ -7,3 +7,4 @@ logs/
 # We usually keep these!
 # !package.json
 # !package-lock.json
+/src/generated/prisma

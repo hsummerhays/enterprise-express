@@ -1,5 +1,5 @@
 import { ZodError } from 'zod';
-
+import ApiResponse from '../utils/api-response.js';
 export const validate = (schema) => async (req, res, next) => {
     try {
         await schema.parseAsync({
@@ -8,16 +8,11 @@ export const validate = (schema) => async (req, res, next) => {
             params: req.params,
         });
         return next();
-    } catch (error) {
+    }
+    catch (error) {
         if (error instanceof ZodError) {
-            return res.status(400).json({
-                error: 'Validation failed',
-                details: error.issues,
-            });
+            return res.status(400).json(ApiResponse.error('Validation failed', 400, error.issues));
         }
-        return res.status(400).json({
-            error: 'Validation failed',
-            details: error.message,
-        });
+        return res.status(400).json(ApiResponse.error('Validation failed', 400, error.message));
     }
 };

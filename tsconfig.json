@@ -1,0 +1,45 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "baseUrl": ".",
+        "paths": {
+            "#controllers/*": [
+                "./src/controllers/*.ts"
+            ],
+            "#services/*": [
+                "./src/services/*.ts"
+            ],
+            "#routes/*": [
+                "./src/routes/*.ts"
+            ],
+            "#middleware/*": [
+                "./src/middleware/*.ts"
+            ],
+            "#schemas/*": [
+                "./src/schemas/*.ts"
+            ],
+            "#utils/*": [
+                "./src/utils/*.ts"
+            ]
+        },
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "allowJs": true,
+        "checkJs": false
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "**/*.test.ts"
+    ]
+}

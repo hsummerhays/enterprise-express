@@ -1,4 +1,8 @@
-class SampleDataService {
+import { SampleData, CreateSampleDataRequest } from '../schemas/sample-data.schema.js';
+
+export class SampleDataService {
+    private sampleData: SampleData[];
+
     constructor() {
         // Our in-memory "Database"
         this.sampleData = [
@@ -7,30 +11,28 @@ class SampleDataService {
         ];
     }
 
-    async getAll() {
+    async getAll(): Promise<SampleData[]> {
         return this.sampleData;
     }
 
-    async getById(id) {
+    async getById(id: string): Promise<SampleData | undefined> {
         return this.sampleData.find(t => t.id === parseInt(id));
     }
 
-    async create(data) {
-        const newItem = {
+    async create(data: CreateSampleDataRequest): Promise<SampleData> {
+        const newItem: SampleData = {
             id: this.sampleData.length + 1,
             title: data.title,
-            completed: false
+            completed: data.completed ?? false
         };
         this.sampleData.push(newItem);
         return newItem;
     }
 
-    async delete(id) {
+    async delete(id: string): Promise<boolean> {
         const index = this.sampleData.findIndex(t => t.id === parseInt(id));
         if (index === -1) return false;
         this.sampleData.splice(index, 1);
         return true;
     }
 }
-
-export const sampleDataService = new SampleDataService();

@@ -2,21 +2,18 @@
  * DATABASE CONNECTION GUIDANCE
  * 
  * This file serves as a template for connecting to MongoDB or PostgreSQL.
- * Before using, make sure to install the required library:
- * - for MongoDB: npm install mongoose
- * - for PostgreSQL: npm install pg
  */
 
 import logger from './logger.js';
 
-// --- MONGODB BOILERPLATE (Commented out until mongoose is installed) ---
+// --- MONGODB BOILERPLATE (Commented out) ---
 /*
 import mongoose from 'mongoose';
 
 export const connectMongo = async () => {
     try {
         const uri = process.env.MONGODB_URI;
-        if (!uri) throw new Error('MONGODB_URI is not defined in environment variables');
+        if (!uri) throw new Error('MONGODB_URI is not defined');
 
         await mongoose.connect(uri);
         logger.info('🚀 Successfully connected to MongoDB');
@@ -27,7 +24,7 @@ export const connectMongo = async () => {
 };
 */
 
-// --- POSTGRESQL BOILERPLATE (Commented out until pg is installed) ---
+// --- POSTGRESQL BOILERPLATE (Commented out) ---
 /*
 import pkg from 'pg';
 const { Pool } = pkg;
@@ -36,14 +33,24 @@ export const postgresPool = new Pool({
     connectionString: process.env.POSTGRES_URI,
 });
 
-export const dbQuery = (text, params) => postgresPool.query(text, params);
+export const dbQuery = (text: string, params?: any[]) => postgresPool.query(text, params);
 
 postgresPool.on('connect', () => {
     logger.info('🐘 Connected to PostgreSQL');
 });
 
-postgresPool.on('error', (err) => {
+postgresPool.on('error', (err: Error) => {
     logger.error('❌ Unexpected error on idle PostgreSQL client', err);
     process.exit(-1);
 });
 */
+
+// --- CLEANUP GUIDANCE ---
+
+/**
+ * Close all database connections properly.
+ */
+export const disconnectDatabase = async (): Promise<void> => {
+    // await mongoose.disconnect();
+    // await postgresPool.end();
+};

@@ -40,14 +40,35 @@ export const connectMongo = async () => {
 
 PostgreSQL is a powerful, open-source relational database.
 
-### Recommended Library: `pg` (node-postgres) or an ORM like `Prisma` / `Drizzle`
+### 2.1 Recommended Library: `pg` (node-postgres)
 
 ```bash
-# For raw queries
 npm install pg
+```
 
-# For ORM (highly recommended for enterprise)
+### 2.2 Using an ORM: Prisma (Highly Recommended)
+
+Prisma is a next-generation Node.js and TypeScript ORM. It provides a clean API for database access and automated migrations.
+
+#### Installation
+```bash
 npm install prisma @prisma/client
+npx prisma init
+```
+
+#### Configuration (`prisma/schema.prisma`)
+Modify the datasource to point to your environment variable:
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+#### Connection Boilerplate (`src/utils/db.js`)
+```javascript
+import { PrismaClient } from '@prisma/client';
+export const prisma = new PrismaClient();
 ```
 
 ### Connection Boilerplate (using `pg`)
