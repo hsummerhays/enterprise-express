@@ -4,70 +4,50 @@ A modern Node.js backend environment optimized for Windows 11 WSL2 and Google An
 
 ## Tech Stack
 
-- **Node.js**: v24.x
-- **Express**: v5.x
+- **Node.js**: v24.x (using native `--env-file` support)
+- **Express**: v5.x (automatic Promise rejection handling)
+- **Validation**: Zod
+- **Testing**: Vitest & Supertest
+- **Security & Logging**: Helmet, CORS, Express Rate Limit, Winston
 
 ## 🛠 Environment Setup
 
-This project is designed to run natively within **Ubuntu (WSL2)** for maximum file system performance and compatibility with Node.js v24.
-
-### 1. Windows Configuration (`.wslconfig`)
-
-To allow seamless networking between the Windows host and WSL, add the following to `%USERPROFILE%\.wslconfig`:
-
-```ini
-[wsl2]
-networkingMode=mirrored
-localhostForwarding=true
-```
-
-Apply the changes by running the following in a Windows PowerShell:
-
-```powershell
-wsl --shutdown
-```
-
-### 2. Antigravity Setup & Connectivity
-
-Download Antigravity: Install the Windows executable from [antigravity.google](https://antigravity.google).
-
-Remote Connection: Open the Command Palette (`Ctrl+Shift+P`) and select **Remote-WSL: Connect to WSL**.
-
-### 3. Opening from Terminal (Optional)
-
-To open projects directly from your Ubuntu terminal, add the following `agy` alias to your `~/.bashrc`:
-
-```bash
-alias agy='/mnt/c/Users/hsummerhays/AppData/Local/Programs/Antigravity/bin/antigravity'
-```
-Reload the configuration:
-
-```bash
-source ~/.bashrc
-```
-Then open the project directly:
-
-```bash
-cd ~/express-backend
-agy .
-```
+For complete instructions on configuring Windows 11 WSL2 and Google Antigravity to run this project natively on Ubuntu, please read the [WSL & Antigravity Setup Guide](./wsl-setup.md).
 
 ## 🏗 Architecture
 
 The project follows an enterprise-style separation of concerns, mirroring patterns found in C# and Java:
 
-* **`src/server.js`**: The entry point. Loads environment variables and ignites the HTTP server.
-* **`src/app.js`**: The Application assembly. Configures Express middleware, routes, and global error handlers.
-* **`src/services/`**: Class-based business logic (Singletons).
-* **`src/routes/`**: (Planned) Modular route definitions.
+* **`src/server.js`**: The entry point. Loads environment variables natively and ignites the HTTP server.
+* **`src/app.js`**: The Application assembly. Configures Express middleware, security headers, rate limiting, and global error handlers.
+* **`src/controllers/`**: Handles incoming requests, orchestrates data validation, and structures API responses.
+* **`src/middleware/`**: Contains custom request loggers and a generalized Zod validation middleware.
+* **`src/routes/`**: Modular route definitions exporting Express routers.
+* **`src/schemas/`**: Zod validation schemas to strongly type and validate incoming API requests.
+* **`src/services/`**: Class-based business logic and data access handlers.
+* **`src/utils/`**: Shared utilities like the Winston logger.
+ 
+## 📚 Documentation & Resources
+ 
+- [Code Walkthrough](./walkthrough.md) - A deep dive into the project structure and request lifecycle.
+- [WSL & Antigravity Setup](./wsl-setup.md) - Detailed environment configuration guide.
+- [Database Connection](./database-setup.md) - Guidance for connecting MongoDB and PostgreSQL.
+- [C# .NET 10 Comparison](./dotnet10-microservices-comparison.md) - Comparing Express 5 with modern .NET 10 microservices.
+- [Spring Boot 4 Comparison](./springboot4-microservices-comparison.md) - Comparing Express 5 with Java 25 / Spring Boot 4.
 
 ## 🚀 Development Commands
+Before running these commands, ensure you select the appropriate node version, and run the following command to grab all the required dependencies:
+```bash
+npm install express cors helmet express-rate-limit winston zod
+npm install -D vitest supertest
+```
 
 | Command | Description |
 | --- | --- |
 | `npm run dev` | Starts the server with Node 24 `--watch` mode and `.env` support. |
+| `npm test` | Runs the integration and unit test suites utilizing Vitest and Supertest. |
 | `npm start` | Production-style start using standard Node. |
-
+ 
 ## 📡 Networking & Ports
 
 * **Default Port:** `3000` (Configurable in `.env`)

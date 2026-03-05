@@ -2,18 +2,26 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import healthRoutes from '#routes/health.routes';
+import sampleDataRoutes from '#routes/sample-data.routes';
+import { requestLogger } from '#middleware/log.middleware';
+import { globalLimiter } from '#middleware/rate-limit.middleware';
 
 const app = express();
+
+// Winston-powered heartbeat
+app.use(requestLogger);
+
+// Body Parsing Middleware
+app.use(express.json());
 
 // Security and CORS middleware
 app.use(helmet());
 app.use(cors());
-
-// Middleware for parsing JSON
-app.use(express.json());
+app.use(globalLimiter);
 
 // Mount Routes
 app.use('/health', healthRoutes);
+app.use('/sample-data', sampleDataRoutes); // Mount the new routes
 
 // Basic Route
 app.get('/', (req, res) => {

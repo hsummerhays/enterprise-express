@@ -1,7 +1,8 @@
 .env
-node_modules
-.vscode
+node_modules/
+.vscode/
 .DS_Store
+logs/
 
 # We usually keep these!
 # !package.json

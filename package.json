@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
     "dev": "node --env-file=.env --watch src/server.js",
     "start": "node src/server.js"
   },
@@ -15,11 +15,21 @@
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "helmet": "^8.1.0"
+    "express-rate-limit": "^8.3.0",
+    "helmet": "^8.1.0",
+    "winston": "^3.19.0",
+    "zod": "^4.3.6"
   },
   "imports": {
     "#controllers/*": "./src/controllers/*.js",
     "#services/*": "./src/services/*.js",
-    "#routes/*": "./src/routes/*.js"
+    "#routes/*": "./src/routes/*.js",
+    "#middleware/*": "./src/middleware/*.js",
+    "#schemas/*": "./src/schemas/*.js",
+    "#utils/*": "./src/utils/*.js"
+  },
+  "devDependencies": {
+    "supertest": "^7.2.2",
+    "vitest": "^4.0.18"
   }
 }
