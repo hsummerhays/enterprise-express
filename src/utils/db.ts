@@ -1,10 +1,8 @@
 /**
  * DATABASE CONNECTION GUIDANCE
- * 
+ *
  * This file serves as a template for connecting to MongoDB or PostgreSQL.
  */
-
-import logger from './logger.js';
 
 // --- MONGODB BOILERPLATE (Commented out) ---
 /*
@@ -51,6 +49,6 @@ postgresPool.on('error', (err: Error) => {
  * Close all database connections properly.
  */
 export const disconnectDatabase = async (): Promise<void> => {
-    // await mongoose.disconnect();
-    // await postgresPool.end();
+	// await mongoose.disconnect();
+	// await postgresPool.end();
 };

@@ -1,63 +1,80 @@
-import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec } from './utils/swagger.js';
-import healthRoutes from './routes/health.routes.js';
-import sampleDataRoutes from './routes/sample-data.routes.js';
-import authRoutes from './routes/auth.routes.js';
-import { requestLogger } from './middleware/log.middleware.js';
-import { globalLimiter } from './middleware/rate-limit.middleware.js';
-import { injectDependencies } from './middleware/di.middleware.js';
-import config from './utils/config.js';
-import ApiResponse from './utils/api-response.js';
+import { apiReference } from "@scalar/express-api-reference";
+import cors from "cors";
+import express, {
+	type NextFunction,
+	type Request,
+	type Response,
+} from "express";
+import helmet from "helmet";
+import { requestLogger } from "./middleware/log.middleware.js";
+import { globalLimiter } from "./middleware/rate-limit.middleware.js";
+import { requestId } from "./middleware/request-id.middleware.js";
+import authRoutes from "./routes/auth.routes.js";
+import healthRoutes from "./routes/health.routes.js";
+import sampleDataRoutes from "./routes/sample-data.routes.js";
+import ApiResponse from "./utils/api-response.js";
+import config from "./utils/config.js";
+import { AppError } from "./utils/errors.js";
+import logger from "./utils/logger.js";
+import { swaggerSpec } from "./utils/swagger.js";
 
 const app = express();
 
-// Dependency Injection & Utility Injection
-app.use(injectDependencies());
-
-// Winston-powered heartbeat
-app.use(requestLogger);
-
-// Body Parsing Middleware
-app.use(express.json());
-
-// Security and CORS middleware
+// --- Security middleware (first) ---
 app.use(helmet());
 app.use(cors());
 app.use(globalLimiter);
 
-// Mount Routes
-app.use('/health', healthRoutes);
-app.use('/auth', authRoutes);
-app.use('/sample-data', sampleDataRoutes);
+// --- Request lifecycle ---
+app.use(requestId);
+app.use(requestLogger);
 
-// Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec as any));
+// --- Body parsing ---
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Basic Route
-app.get('/', (req: Request, res: Response) => {
-    res.status(200).json({
-        message: "WSL/Bash Backend is live (TypeScript)!",
-        timestamp: new Date().toISOString()
-    });
+// --- Routes ---
+app.use("/health", healthRoutes);
+app.use("/auth", authRoutes);
+app.use("/sample-data", sampleDataRoutes);
+
+// --- API Documentation (Scalar) ---
+app.use(
+	"/api-docs",
+	apiReference({
+		theme: "deepSpace",
+		spec: { content: swaggerSpec },
+	} as Parameters<typeof apiReference>[0]),
+);
+
+// --- Root ---
+app.get("/", (_req: Request, res: Response) => {
+	res.status(200).json({
+		message: "WSL/Bash Backend is live (TypeScript)!",
+		timestamp: new Date().toISOString(),
+	});
 });
 
-// 404 Handler
-app.use((req: Request, res: Response, next: NextFunction) => {
-    const error: any = new Error(`The route ${req.originalUrl} does not exist.`);
-    error.status = 404;
-    next(error);
+// --- 404 Handler ---
+app.use((req: Request, _res: Response, next: NextFunction) => {
+	next(new AppError(`The route ${req.originalUrl} does not exist.`, 404));
 });
 
-// Global Error Handler
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    const statusCode = err.status || 500;
-    const message = statusCode === 500 ? 'Internal Server Error' : err.message;
-    const details = config.app.env === 'development' ? err.stack : null;
+// --- Global Error Handler ---
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+	if (err instanceof AppError) {
+		return res
+			.status(err.statusCode)
+			.json(ApiResponse.error(err.message, err.statusCode));
+	}
 
-    res.status(statusCode).json(ApiResponse.error(message, statusCode, details));
+	// Unexpected errors — log full stack, but don't expose to client
+	logger.error("Unhandled error:", err);
+
+	const details = config.app.env === "development" ? err.stack : null;
+	return res
+		.status(500)
+		.json(ApiResponse.error("Internal Server Error", 500, details));
 });
 
 export default app;

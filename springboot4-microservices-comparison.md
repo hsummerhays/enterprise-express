@@ -9,9 +9,11 @@ This document maps the architectural patterns in this project to their equivalen
 | **Component Model** | ES6 Classes (exported) | `@Component`, `@Service`, `@Controller` |
 | **Dependency Injection** | Constructor-based (Manual) | `@Autowired` or Constructor Inject |
 | **Request Validation** | [Zod](https://zod.dev/) | Spring Validation / Hibernate Validator |
-| **API Docs** | [Zod-to-OpenAPI](https://github.com/asteasolutions/zod-to-openapi) | SpringDoc OpenAPI / Swagger UI |
+| **Auth / JWT** | [jose](https://github.com/panva/jose) + [Argon2](https://github.com/ranieri/node-argon2) | Spring Security / JWT |
+| **API Docs** | [Zod-to-OpenAPI](https://github.com/asteasolutions/zod-to-openapi) + [Scalar](https://github.com/scalar/scalar) | SpringDoc OpenAPI / Swagger UI |
 | **Logging** | [Winston](https://github.com/winstonjs/winston) | Logback / SLF4J |
-| **Config Management** | [node-config](https://github.com/node-config/node-config) | `application.properties` / `.yml` |
+| **Config Management** | Zod-validated `process.env` | `application.properties` / `.yml` |
+| **Linting** | [Biome](https://biomejs.dev/) | Checkstyle / PMD |
 | **Testing** | [Vitest](https://vitest.dev/) | JUnit 5 + Mockito |
 | **Integration Test** | [Supertest](https://github.com/ladjs/supertest) | `MockMvc` / `TestRestTemplate` |
 

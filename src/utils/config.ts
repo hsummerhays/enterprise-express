@@ -1,37 +1,47 @@
-import config from 'config';
-import { z } from 'zod';
-import logger from './logger.js';
+import { z } from "zod";
 
 const configSchema = z.object({
-    app: z.object({
-        port: z.number().int().nonnegative().or(z.string().transform((v) => parseInt(v, 10))),
-        env: z.string().min(1)
-    }),
-    logging: z.object({
-        level: z.enum(['debug', 'info', 'warn', 'error'])
-    }),
-    auth: z.object({
-        jwtSecret: z.string().min(1)
-    })
+	app: z.object({
+		port: z
+			.string()
+			.default("3000")
+			.transform((v) => Number.parseInt(v, 10))
+			.pipe(z.number().int().nonnegative()),
+		env: z.string().min(1).default("development"),
+	}),
+	logging: z.object({
+		level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+	}),
+	auth: z.object({
+		jwtSecret: z.string().min(1, "JWT_SECRET is required"),
+	}),
 });
 
 export type Config = z.infer<typeof configSchema>;
 
 export const validateConfig = (): Config => {
-    try {
-        const rawConfig = config.util.toObject();
-        const validated = configSchema.parse(rawConfig);
-        logger.info('✅ Configuration validated successfully');
-        return validated;
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            logger.error('❌ Configuration validation failed:', error.issues);
-        } else {
-            logger.error('❌ Unexpected error during config validation:', error);
-        }
-        process.exit(1);
-    }
+	const rawConfig = {
+		app: {
+			port: process.env.PORT,
+			env: process.env.NODE_ENV,
+		},
+		logging: {
+			level: process.env.LOG_LEVEL,
+		},
+		auth: {
+			jwtSecret: process.env.JWT_SECRET,
+		},
+	};
+
+	const result = configSchema.safeParse(rawConfig);
+
+	if (!result.success) {
+		console.error("❌ Configuration validation failed:", result.error.issues);
+		process.exit(1);
+	}
+
+	return result.data;
 };
 
-const validatedConfig = validateConfig();
-export default validatedConfig;
+const config = validateConfig();
+export default config;

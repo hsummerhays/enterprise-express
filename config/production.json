@@ -1,8 +1,0 @@
-{
-    "app": {
-        "env": "production"
-    },
-    "logging": {
-        "level": "warn"
-    }
-}

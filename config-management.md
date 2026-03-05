@@ -1,64 +1,96 @@
 # ⚙️ Configuration Management Guide
 
-This project utilizes the `config` library (node-config) paired with **Zod** to manage and validate type-safe, environment-specific settings.
+This project validates all configuration directly from `process.env` using **Zod** — no extra config libraries needed.
 
 ---
 
-## 1. Multi-Layer Hierarchy
+## 1. How It Works
 
-The configuration system follows a hierarchical merge strategy to ensure flexibility across development, testing, and production.
+All configuration is read from environment variables, validated and typed on startup:
 
-1.  **`config/default.json`**: The base structure and common values shared across all environments.
-2.  **`config/{NODE_ENV}.json`**: (e.g., `production.json`, `development.json`) Overrides the base values for specific environments.
-3.  **`config/custom-environment-variables.json`**: Maps system environment variables (from `.env` or the OS) to specific configuration keys. This is critical for **Secrets** (like JWT keys).
+```typescript
+// src/utils/config.ts
+const rawConfig = {
+    app: { port: process.env.PORT, env: process.env.NODE_ENV },
+    logging: { level: process.env.LOG_LEVEL },
+    auth: { jwtSecret: process.env.JWT_SECRET },
+};
+
+const config = configSchema.parse(rawConfig);
+```
+
+The Zod schema handles **defaults**, **coercion** (e.g., `PORT` string → number), and **validation** (e.g., `JWT_SECRET` must be a non-empty string).
 
 ---
 
 ## 2. Environment Variables & `.env`
 
-While structural config lives in JSON files, **Secrets and machine-specific overrides** live in the `.env` file. 
-
-This project uses **Node.js 24+ native environment file support**. We load variables via the `--env-file` flag in `package.json`:
+This project uses **Node.js 24+ native environment file support**. Variables are loaded via the `--env-file` flag in `package.json`:
 
 ```bash
 # Example from package.json
 tsx watch --env-file=.env src/server.ts
 ```
 
-### Mapping Example
-To link a variable like `JWT_SECRET` to the app config, it is registered in `custom-environment-variables.json`:
+### Available Variables
 
-```json
-{
-  "auth": {
-    "jwtSecret": "JWT_SECRET"
-  }
-}
-```
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `PORT` | No | `3000` | Server port |
+| `NODE_ENV` | No | `development` | Environment name |
+| `LOG_LEVEL` | No | `info` | Winston log level (`debug`, `info`, `warn`, `error`) |
+| `JWT_SECRET` | **Yes** | — | Secret key for signing JWTs |
 
 ---
 
-## 3. Type-Safe Access & Validation
+## 3. Type-Safe Access
 
-Instead of directly accessing `process.env`, always import the validated configuration from `src/utils/config.ts`. 
-
-### The "Fail-Fast" Mechanism
-On application startup, the system validates the merged configuration against a **Zod schema**. If a required value (like a secret) is missing or has the wrong type, the application will exit immediately with a descriptive error.
+Import the validated configuration object from `src/utils/config.ts`:
 
 ```typescript
-import config from '#utils/config';
+import config from './utils/config.js';
 
-const port = config.app.port; // Autocomplete and type safety included
+const port = config.app.port;     // number (auto-coerced from string)
+const env = config.app.env;       // string
+const level = config.logging.level; // 'debug' | 'info' | 'warn' | 'error'
+```
+
+Full TypeScript autocomplete and type safety is provided via `z.infer`.
+
+---
+
+## 4. The "Fail-Fast" Mechanism
+
+On application startup, the config module uses `safeParse` to validate the merged environment. If a required value is missing or invalid, the application exits immediately with a descriptive error:
+
+```
+❌ Configuration validation failed: [
+  { expected: 'string', code: 'invalid_type', path: ['auth', 'jwtSecret'], message: 'JWT_SECRET is required' }
+]
 ```
 
 ---
 
-## 4. Maintenance
+## 5. Maintenance
 
 ### Adding New Config Keys
-1.  Add the key and a default value to `config/default.json`.
-2.  Update the `configSchema` in `src/utils/config.ts` to include the new key.
-3.  (Optional) Add a mapping in `custom-environment-variables.json` if it should be overridable via `.env`.
+1. Add the variable to `.env.example` (and your local `.env`).
+2. Update the `configSchema` Zod schema in `src/utils/config.ts` with the new field, default, and type.
+3. Update the `rawConfig` object in the same file to read from `process.env`.
+
+### For Tests
+Test-specific environment values are provided in `vitest.config.ts`:
+
+```typescript
+export default defineConfig({
+    test: {
+        env: {
+            JWT_SECRET: "test-secret-for-vitest",
+            NODE_ENV: "test",
+        },
+    },
+});
+```
 
 ### Troubleshooting
-If the app fails to start with a "Configuration validation failed" error, check your `.env` file against the schema requirements defined in `src/utils/config.ts`.
+If the app fails to start with a "Configuration validation failed" error, check your `.env` file against the variable table above and the schema in `src/utils/config.ts`.

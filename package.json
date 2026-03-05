@@ -1,48 +1,41 @@
 {
-  "name": "express-backend",
-  "version": "1.0.0",
-  "description": "",
-  "main": "dist/server.js",
-  "scripts": {
-    "test": "vitest",
-    "dev": "tsx watch --env-file=.env src/server.ts",
-    "build": "tsc",
-    "start": "node --env-file=.env dist/server.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
-  "dependencies": {
-    "@asteasolutions/zod-to-openapi": "^8.4.3",
-    "config": "^4.4.1",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "express-rate-limit": "^8.3.0",
-    "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.3",
-    "swagger-ui-express": "^5.0.1",
-    "winston": "^3.19.0",
-    "zod": "^4.3.6"
-  },
-  "imports": {
-    "#controllers/*": "./src/controllers/*.ts",
-    "#services/*": "./src/services/*.ts",
-    "#routes/*": "./src/routes/*.ts",
-    "#middleware/*": "./src/middleware/*.ts",
-    "#schemas/*": "./src/schemas/*.ts",
-    "#utils/*": "./src/utils/*.ts"
-  },
-  "devDependencies": {
-    "@types/config": "^3.3.5",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^25.3.3",
-    "@types/swagger-ui-express": "^4.1.8",
-    "supertest": "^7.2.2",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
-  }
+	"name": "express-backend",
+	"version": "1.0.0",
+	"description": "",
+	"main": "dist/server.js",
+	"scripts": {
+		"test": "vitest",
+		"dev": "tsx watch --env-file=.env src/server.ts",
+		"build": "tsc",
+		"start": "node --env-file=.env dist/server.js",
+		"lint": "biome check ./src",
+		"format": "biome format --write ./src"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"type": "module",
+	"dependencies": {
+		"@asteasolutions/zod-to-openapi": "^8.4.3",
+		"@scalar/express-api-reference": "^0.9.0",
+		"argon2": "^0.44.0",
+		"cors": "^2.8.6",
+		"express": "^5.2.1",
+		"express-rate-limit": "^8.3.0",
+		"helmet": "^8.1.0",
+		"jose": "^6.2.0",
+		"winston": "^3.19.0",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.6",
+		"@types/cors": "^2.8.19",
+		"@types/express": "^5.0.6",
+		"@types/node": "^25.3.3",
+		"@types/supertest": "^7.2.0",
+		"supertest": "^7.2.2",
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.18"
+	}
 }

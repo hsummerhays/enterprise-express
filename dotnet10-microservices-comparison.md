@@ -9,9 +9,11 @@ This document maps the architectural patterns in this project to their equivalen
 | **Component Model** | ES6 Classes (exported) | `class`, `record`, `interface` |
 | **Dependency Injection** | Constructor-based (Manual) | `Microsoft.Extensions.DependencyInjection` |
 | **Request Validation** | [Zod](https://zod.dev/) | Data Annotations / FluentValidation |
-| **API Docs** | [Zod-to-OpenAPI](https://github.com/asteasolutions/zod-to-openapi) | Swashbuckle / Scalar / OpenAPI 4.0 |
+| **Auth / JWT** | [jose](https://github.com/panva/jose) + [Argon2](https://github.com/ranieri/node-argon2) | ASP.NET Identity / MSAL |
+| **API Docs** | [Zod-to-OpenAPI](https://github.com/asteasolutions/zod-to-openapi) + [Scalar](https://github.com/scalar/scalar) | Swashbuckle / Scalar / OpenAPI 4.0 |
 | **Logging** | [Winston](https://github.com/winstonjs/winston) | `ILogger` / Serilog |
-| **Config Management** | [node-config](https://github.com/node-config/node-config) | `appsettings.json` / `IConfiguration` |
+| **Config Management** | Zod-validated `process.env` | `appsettings.json` / `IConfiguration` |
+| **Linting** | [Biome](https://biomejs.dev/) | .NET Analyzers / StyleCop |
 | **Testing** | [Vitest](https://vitest.dev/) | xUnit / NUnit + Moq |
 | **Integration Test** | [Supertest](https://github.com/ladjs/supertest) | `WebApplicationFactory` |
 

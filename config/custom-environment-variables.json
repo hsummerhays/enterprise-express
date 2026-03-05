@@ -1,8 +1,0 @@
-{
-    "app": {
-        "port": "PORT"
-    },
-    "auth": {
-        "jwtSecret": "JWT_SECRET"
-    }
-}
