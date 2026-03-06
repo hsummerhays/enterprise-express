@@ -1,14 +1,20 @@
 # Enterprise Express
 
-![Node Version](https://img.shields.io/badge/node-%3E%3D24-green)
-![TypeScript](https://img.shields.io/badge/typescript-5-blue)
-![Express](https://img.shields.io/badge/express-5-black)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Architecture](https://img.shields.io/badge/architecture-clean-brightgreen)
+Enterprise-grade TypeScript backend architecture for Node.js and Express
+implementing Clean Architecture and production-ready service patterns.
 
-Enterprise-grade TypeScript backend architecture for Node.js and Express implementing Clean Architecture, dependency injection, validation, OpenAPI, and production-grade patterns inspired by ASP.NET Core and Spring Boot.
+![Node](https://img.shields.io/badge/node-%3E%3D20-green)
+![TypeScript](https://img.shields.io/badge/typescript-5.x-blue)
+![Express](https://img.shields.io/badge/express-5.x-lightgrey)
+![Architecture](https://img.shields.io/badge/architecture-clean--architecture-purple)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Tests](https://img.shields.io/badge/tests-vitest-yellow)
+![Validation](https://img.shields.io/badge/validation-zod-orange)
+![Logging](https://img.shields.io/badge/logging-pino-red)
+![OpenAPI](https://img.shields.io/badge/api-openapi-blue)
 
 ---
+
 
 ## Project Status
 
@@ -552,9 +558,28 @@ describe("Sample Data Routes API (Integration)", () => {
 
 This demonstrates full integration testing through the entire stack — routing, middleware, validation, service, and repository — without mocking.
 
+## 13. Health Check
+
+The service exposes a Production-Grade health check endpoint:
+
+`GET /health`
+
+Example response:
+
+```json
+{
+  "status": "ok",
+  "uptime": 123.45,
+  "database": "connected",
+  "timestamp": "2026-03-06T18:15:00Z"
+}
+```
+
+This endpoint can be used by Kubernetes liveness/readiness probes, Docker health checks, load balancers, or uptime monitors to verify the service and its critical dependencies are functional.
+
 ---
 
-## 13. Running the Project
+## 14. Running the Project
 
 ### Rapid Setup
 
