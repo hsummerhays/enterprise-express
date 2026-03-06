@@ -1,11 +1,12 @@
 import type { Request, Response } from "express";
 import type { AuthService } from "../services/auth.service.js";
-import ApiResponse from "../utils/api-response.js";
+import { BaseController } from "./base.controller.js";
 
-export class AuthController {
+export class AuthController extends BaseController {
 	private authService: AuthService;
 
 	constructor(authService: AuthService) {
+		super();
 		this.authService = authService;
 	}
 
@@ -15,13 +16,9 @@ export class AuthController {
 		const result = await this.authService.login(email, password);
 
 		if (!result) {
-			return res
-				.status(401)
-				.json(ApiResponse.error("Invalid email or password", 401));
+			return this.handleError(res, "Invalid email or password", 401);
 		}
 
-		return res
-			.status(200)
-			.json(ApiResponse.success(result, "Login successful"));
+		return this.handleSuccess(res, result, "Login successful");
 	};
 }
