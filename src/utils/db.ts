@@ -16,7 +16,7 @@ export const connectMongo = async () => {
         await mongoose.connect(uri);
         logger.info('🚀 Successfully connected to MongoDB');
     } catch (error) {
-        logger.error('❌ MongoDB connection error:', error);
+        logger.error({ err: error }, '❌ MongoDB connection error');
         process.exit(1);
     }
 };
@@ -38,7 +38,7 @@ postgresPool.on('connect', () => {
 });
 
 postgresPool.on('error', (err: Error) => {
-    logger.error('❌ Unexpected error on idle PostgreSQL client', err);
+    logger.error({ err }, '❌ Unexpected error on idle PostgreSQL client');
     process.exit(-1);
 });
 */
@@ -49,6 +49,6 @@ postgresPool.on('error', (err: Error) => {
  * Close all database connections properly.
  */
 export const disconnectDatabase = async (): Promise<void> => {
-	// await mongoose.disconnect();
-	// await postgresPool.end();
+    // await mongoose.disconnect();
+    // await postgresPool.end();
 };

@@ -7,32 +7,40 @@ This document maps the architectural patterns in this project to their equivalen
 | Feature | Express 5 + TypeScript | ASP.NET Core 9/10 |
 | :--- | :--- | :--- |
 | **Component Model** | ES6 Classes (exported) | `class`, `record`, `interface` |
-| **Dependency Injection** | Constructor-based (Manual) | `Microsoft.Extensions.DependencyInjection` |
+| **Dependency Injection** | Constructor-based (Manual, 4-layer) | `Microsoft.Extensions.DependencyInjection` |
 | **Request Validation** | [Zod](https://zod.dev/) | Data Annotations / FluentValidation |
 | **Auth / JWT** | [jose](https://github.com/panva/jose) + [Argon2](https://github.com/ranieri/node-argon2) | ASP.NET Identity / MSAL |
 | **API Docs** | [Zod-to-OpenAPI](https://github.com/asteasolutions/zod-to-openapi) + [Scalar](https://github.com/scalar/scalar) | Swashbuckle / Scalar / OpenAPI 4.0 |
-| **Logging** | [Winston](https://github.com/winstonjs/winston) | `ILogger` / Serilog |
+| **Logging** | [Pino](https://github.com/pinojs/pino) | `ILogger` / Serilog |
 | **Config Management** | Zod-validated `process.env` | `appsettings.json` / `IConfiguration` |
 | **Linting** | [Biome](https://biomejs.dev/) | .NET Analyzers / StyleCop |
 | **Testing** | [Vitest](https://vitest.dev/) | xUnit / NUnit + Moq |
 | **Integration Test** | [Supertest](https://github.com/ladjs/supertest) | `WebApplicationFactory` |
+| **Rate Limiting** | [express-rate-limit](https://www.npmjs.com/package/express-rate-limit) (Global + Auth) | ASP.NET Rate Limiting middleware |
 
 ## 🧩 Architectural Equivalents
 
 ### 1. Unified Controllers
-In this project, we use `src/controllers/*.ts`. These mirror ASP.NET Core Controllers.
-- **This project**: `export class Controller { constructor(private service: Service) {} }`
+In this project, all controllers extend `BaseController` (`src/controllers/*.ts`). This mirrors ASP.NET Core's `ControllerBase`.
+- **This project**: `export class Controller extends BaseController { constructor(private service: Service) { super(); } }`
 - **.NET**: `public class Controller(IService service) : ControllerBase { ... }` (Primary Constructor)
+- **`BaseController`** provides `handleSuccess()`, `handleError()`, and `handleNoContent()` — the same pattern as `Ok()`, `BadRequest()`, and `NoContent()` in ASP.NET.
 
-### 2. Dependency Injection (DI)
-We implement constructor-based DI at the route orchestration layer. 
+### 2. Repository Pattern
+Data access is encapsulated in `src/repositories/*.ts`, mirroring the Repository Pattern used extensively in .NET with Entity Framework Core.
+- **This project**: `class SampleDataRepository { async findAll() { ... } }`
+- **.NET**: `class SampleDataRepository : IRepository<SampleData> { ... }`
+
+### 3. Dependency Injection (DI)
+We implement constructor-based DI through a 4-layer chain: Routes instantiate Repositories → pass them to Services → pass Services to Controllers.
 - **Pattern**: While .NET uses a runtime container (`IServiceCollection`), this project uses a **Composition Root** pattern within the routers. This ensures compile-time safety and zero reflection overhead.
 
-### 3. Middleware Pipeline
+### 4. Middleware Pipeline
 `src/app.ts` defines the middleware order.
-- **Equivalence**: This is the exact equivalent of the `app.UseMiddleware()` pipeline in `Program.cs`. We handle CORS, Security (Helmet), and Errors in the same sequential pattern.
+- **Equivalence**: This is the exact equivalent of the `app.UseMiddleware()` pipeline in `Program.cs`. We handle CORS (configurable via `CORS_ORIGIN`), Security (Helmet), Rate Limiting (global + auth-specific), and Errors in the same sequential pattern.
+- **Auth middleware** throws typed `UnauthorizedError` exceptions, mirroring ASP.NET's `AuthenticationHandler` which throws `AuthenticationFailureException`.
 
-### 4. Custom Request Objects
+### 5. Custom Request Objects
 Our `AuthenticatedRequest` interface in `auth.middleware.ts` mirrors the practice of extending the `HttpContext.User` or using custom `Request` objects in modern Minimal APIs.
 
 ## 🚀 Native Performance

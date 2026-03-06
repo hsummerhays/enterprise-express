@@ -14,10 +14,10 @@ import logger from './utils/logger.js';
 const PORT = config.app.port;
 
 app.listen(PORT, () => {
-    logger.info('Express server successfully ready', {
+    logger.info({
         port: PORT,
         env: config.app.env,
-    });
+    }, 'Express server started successfully');
 });
 ```
 

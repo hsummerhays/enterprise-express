@@ -6,11 +6,14 @@ import logger from "./utils/logger.js";
 const PORT = config.app.port || 3000;
 
 const server = app.listen(PORT, () => {
-	logger.info("Express server successfully started (TypeScript)", {
-		port: PORT,
-		env: config.app.env,
-		wsl_mode: "mirrored",
-	});
+	logger.info(
+		{
+			port: PORT,
+			env: config.app.env,
+			wsl_mode: "mirrored",
+		},
+		"Express server started successfully (TypeScript)",
+	);
 	logger.info(`Access your API at http://localhost:${PORT}`);
 });
 
@@ -26,7 +29,7 @@ const gracefulShutdown = async (signal: string) => {
 			await disconnectDatabase();
 			logger.info("Resources cleaned up smoothly.");
 		} catch (error) {
-			logger.error("Error during resource cleanup:", error);
+			logger.error({ err: error }, "Error during resource cleanup");
 		}
 
 		process.exit(0);
