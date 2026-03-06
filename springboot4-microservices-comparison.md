@@ -21,26 +21,26 @@ This document maps the architectural patterns in this project to their equivalen
 ## 🧩 Architectural Equivalents
 
 ### 1. The Controller Layer
-In this project, all controllers extend `BaseController` (`src/controllers/*.ts`). These mirror Spring MVC `@RestController` classes.
-- **This project**: `export class Controller extends BaseController { constructor(private service: Service) { super(); } }`
-- **Spring**: `@RestController public class Controller { private final Service service; ... }`
+In this project, all controllers extend `BaseController` (`src/interfaces/http/controllers/*.ts`). These mirror Spring MVC `@RestController` classes.
+- **This project**: `export class Controller extends BaseController { constructor(private useCase: UseCase) { super(); } }`
+- **Spring**: `@RestController public class Controller { private final UseCase useCase; ... }`
 - **`BaseController`** provides `handleSuccess()`, `handleError()`, and `handleNoContent()` — similar to using `ResponseEntity.ok()`, `ResponseEntity.badRequest()`, or setting up a `ResponseBodyAdvice`.
 
 ### 2. Repository Pattern
-Data access is encapsulated in `src/repositories/*.ts`, perfectly mirroring Spring Data's `@Repository` stereotype.
+Data access is encapsulated in `src/infrastructure/repositories/*.ts`, perfectly mirroring Spring Data's `@Repository` stereotype.
 - **This project**: `class SampleDataRepository { async findAll() { ... } }`
 - **Spring**: `@Repository public interface SampleDataRepository extends JpaRepository<SampleData, Long> { ... }`
 
 ### 3. Dependency Injection (DI)
-We implement constructor-based DI through a 4-layer chain (`src/routes/*.ts`). 
-- **Pattern**: Routes act as the **Application Context** manually instantiating Repositories → injecting into Services → injecting into Controllers. This ensures every layer is cleanly mocked in testing, functionally identical to Spring's IoC container injecting `@Service` and `@Repository` beans.
+The project uses a hand-rolled DI container in `src/bootstrap/container.ts` — the single **Composition Root** that wires the full object graph: repositories → use cases → controllers.
+- **Pattern**: This is functionally equivalent to Spring's IoC container registering `@Repository` and `@Service` beans, but without annotations or reflection. Class constructors act as DI tokens, making the full dependency graph explicit and type-safe in a single file — analogous to Spring's `ApplicationContext` populated at startup.
 
 ### 4. Graceful Shutdown
 Our `src/server.ts` handles `SIGTERM`.
 - **Equivalence**: This mirrors `@PreDestroy` logic or Spring's native `server.shutdown=graceful` configuration.
 
 ### 5. Middleware as Filters
-`src/middleware/*.ts` are the exact equivalent of **Spring Security Filters** or `HandlerInterceptor`.
+`src/interfaces/http/middleware/*.ts` are the exact equivalent of **Spring Security Filters** or `HandlerInterceptor`.
 - **Auth**: Our JWT middleware throwing an `UnauthorizedError` mirrors a `OncePerRequestFilter` throwing an `AuthenticationException`.
 - **Security & CORS**: Our use of `helmet` and `cors({ origin: config.app.corsOrigin })` acts similarly to `HttpSecurity.cors()` and `HttpSecurity.headers()`.
 

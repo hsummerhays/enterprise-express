@@ -1,7 +1,7 @@
 {
 	"name": "enterprise-express",
 	"version": "1.0.0",
-	"description": "",
+	"description": "A reference architecture for building maintainable, enterprise-grade Express.js services in Node.js",
 	"main": "dist/server.js",
 	"scripts": {
 		"test": "vitest",
@@ -12,8 +12,8 @@
 		"format": "biome format --write ./src"
 	},
 	"keywords": [],
-	"author": "",
-	"license": "ISC",
+	"author": "Hugh Summerhays",
+	"license": "MIT",
 	"type": "module",
 	"dependencies": {
 		"@asteasolutions/zod-to-openapi": "^8.4.3",

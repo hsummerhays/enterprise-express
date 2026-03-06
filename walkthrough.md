@@ -1,221 +1,376 @@
 # Code Walkthrough: WSL-Native TypeScript Express Backend
 
-This walkthrough explains the core architecture of the Express backend project. The project enforces a strict layered architecture with constructor-based dependency injection, ensuring the codebase remains maintainable, testable, and robust.
+This walkthrough explains the core architecture of the Express backend project. The project enforces **Clean Architecture** with constructor-based dependency injection, ensuring the codebase remains maintainable, testable, and decoupled from any specific framework or database.
 
 ## 1. Entry Point: `src/server.ts`
 
-This file is responsible for initializing the environment and igniting the HTTP server. 
+This file starts the HTTP server and handles graceful shutdown.
 
 ```typescript
-import app from './app.js';
-import config from './utils/config.js';
-import logger from './utils/logger.js';
-
-const PORT = config.app.port;
-
-app.listen(PORT, () => {
-    logger.info({
-        port: PORT,
-        env: config.app.env,
-    }, 'Express server started successfully');
+const server = app.listen(PORT, () => {
+    logger.info({ port: PORT, env: config.app.env }, 'Express server started successfully');
 });
 ```
 
-Because this project is configured for Node v24+, environment variables are loaded directly via the `--env-file` flag when executing the startup script, rather than relying on an external library.
+Environment variables are loaded via the `--env-file` flag at startup rather than a third-party library. On `SIGTERM` or `SIGINT`, the server stops accepting new connections, waits for in-flight requests to finish, then calls `disconnectDatabase()` before exiting. A 10-second safety timer forces an exit if cleanup stalls.
 
 ## 2. Express Setup: `src/app.ts`
 
-The `app.ts` file handles all top-level Express routing, security middleware, rate limiting, and global error handling. The middleware is ordered intentionally:
+`app.ts` wires together all middleware and delegates route registration to the bootstrap layer. The middleware is ordered intentionally:
 
-1. **Security first**: `helmet`, `cors` (with configurable `CORS_ORIGIN`), `express-rate-limit`
+1. **Security first**: `helmet`, `cors` (configurable via `CORS_ORIGIN`), `express-rate-limit`
 2. **Request lifecycle**: Request ID generation, Pino-powered structured request logging
 3. **Body parsing**: `express.json()` and `express.urlencoded()` (capped at `16kb`)
-4. **Routes**: Health, auth, and sample data endpoints
-5. **Error handling**: 404 handler using `AppError`, global error handler with structured responses
+4. **Routes**: Delegated to `setupRoutes(app)` from the composition root
+5. **API docs**: Scalar UI served at `/api-docs`
+6. **Error handling**: 404 handler followed by a global error handler
 
-The global error handler distinguishes between operational errors (`AppError` subclasses) and unexpected errors, only exposing stack traces in development.
+The global error handler distinguishes between operational `AppError` subclasses (returned with their own `statusCode`) and unexpected errors (logged with full stack, but only exposed in development).
 
-## 3. Layered Architecture
+## 3. Clean Architecture
 
-The project enforces a strict data flow through four layers:
+The project follows Clean Architecture, which organizes code into four concentric layers. The fundamental rule is the **Dependency Rule**: source code can only point inward. Outer layers depend on inner layers — never the reverse.
 
 ```
-Routes → Controllers → Services → Repositories
+          ┌─────────────────────────────┐
+          │        Interfaces           │  ← Express, HTTP, routes, validators, OpenAPI
+          │  ┌───────────────────────┐  │
+          │  │     Infrastructure    │  │  ← SQLite, Argon2, Jose JWT
+          │  │  ┌─────────────────┐  │  │
+          │  │  │   Application   │  │  │  ← Use cases, DTOs, ports, mappers
+          │  │  │  ┌───────────┐  │  │  │
+          │  │  │  │  Domain   │  │  │  │  ← Entities, repository interfaces, errors
+          │  │  │  └───────────┘  │  │  │
+          │  │  └─────────────────┘  │  │
+          │  └───────────────────────┘  │
+          └─────────────────────────────┘
 ```
 
-Each layer has a single responsibility:
+### Directory Structure
 
-- **Routes** map HTTP verbs/paths to Controller methods and apply middleware (validation, authentication, rate limiting).
-- **Controllers** extend `BaseController`, parse request input, call Services, and serialize responses using `handleSuccess`, `handleError`, or `handleNoContent`.
-- **Services** contain all business logic. They are framework-agnostic and do not know about Express `req` or `res` objects.
-- **Repositories** encapsulate all data access operations (in-memory arrays, database queries, etc.).
+```
+src/
+├── server.ts                         ← HTTP server startup & graceful shutdown
+├── app.ts                            ← Express app setup & middleware stack
+│
+├── bootstrap/
+│   ├── container.ts                  ← Composition root: wires all dependencies
+│   └── routes.ts                     ← Mounts routes onto the Express app
+│
+├── domain/                           ← Core business rules (no external dependencies)
+│   ├── entities/
+│   │   ├── User.ts
+│   │   └── SampleData.ts
+│   ├── repositories/                 ← Repository interfaces (contracts, not implementations)
+│   │   ├── UserRepository.ts
+│   │   └── SampleDataRepository.ts
+│   ├── value-objects/
+│   │   └── Email.ts
+│   └── errors/
+│       ├── index.ts                  ← NotFoundError, ValidationError, UnauthorizedError, etc.
+│       └── DomainError.ts            ← UserAlreadyExistsError, etc.
+│
+├── application/                      ← Use cases and orchestration (no framework dependencies)
+│   ├── dto/                          ← Plain TypeScript types for data flowing between layers
+│   ├── mappers/                      ← Converts domain entities to response DTOs
+│   ├── ports/                        ← Interfaces for infrastructure services (PasswordHasher, TokenService)
+│   └── use-cases/
+│       ├── auth/
+│       ├── users/
+│       ├── sample-data/
+│       └── system/
+│
+├── infrastructure/                   ← External systems (implements domain & application interfaces)
+│   ├── database/
+│   ├── repositories/                 ← SQLite implementations of domain repository interfaces
+│   └── security/                     ← Argon2PasswordHasher, JoseTokenService
+│
+├── interfaces/
+│   └── http/                         ← Express-specific code isolated here
+│       ├── controllers/
+│       ├── middleware/
+│       ├── routes/
+│       ├── validators/               ← Zod schemas for HTTP request validation
+│       └── openapi/                  ← OpenAPI path and schema definitions
+│
+└── utils/                            ← Shared utilities (logger, config, api-response, etc.)
+```
 
-Dependencies flow downward via constructor injection: Routes instantiate Repositories → pass them to Services → pass Services to Controllers.
+## 4. The Request Lifecycle (Example: Create Sample Data)
 
-## 4. The Request Lifecycle (Example: Sample Data)
+A single `POST /sample-data` request traverses every layer. Here is the complete path:
 
-When an HTTP request enters the system, it typically traverses through the following layers:
+### A. Composition Root (`src/bootstrap/container.ts` + `src/bootstrap/routes.ts`)
 
-### A. Routes (`src/routes/sample-data.routes.ts`)
-Routes map HTTP endpoints to controller methods. Dependencies are wired via manual constructor injection at the route level:
+Before any request arrives, the composition root wires the entire object graph:
 
 ```typescript
-const sampleDataRepository = new SampleDataRepository();
-const sampleDataService = new SampleDataService(sampleDataRepository);
-const sampleDataController = new SampleDataController(sampleDataService);
-
-router.post('/', authenticate, validate(createSampleDataSchema), sampleDataController.create);
+// bootstrap/container.ts
+const sampleDataRepository = new SqliteSampleDataRepository();
+const createSampleDataUseCase = new CreateSampleDataUseCase(sampleDataRepository);
+const sampleDataController = new SampleDataController(/* ...use cases */);
+container.register(SampleDataController, sampleDataController);
 ```
 
-### B. Validation Middlewares & Schemas (`src/schemas/` & `src/middleware/`)
-The `validate` middleware executes a given Zod schema against the incoming request. If the payload is invalid, the middleware intercepts the request and returns a structured `400 Bad Request` containing the specific `ZodError` issues before it ever reaches the controller.
-
-The middleware accepts any `ZodTypeAny` schema, making it flexible enough for objects, unions, and intersections.
-
-### C. Controllers (`src/controllers/sample-data.controller.ts`)
-Controllers extend `BaseController` and receive their dependencies through their **constructor**. All response formatting is handled via inherited helper methods:
+The bootstrap router then connects controllers to their routes. Routes are registered via functions — they receive a controller and never import from the container directly:
 
 ```typescript
-export class SampleDataController extends BaseController {
-    constructor(private sampleDataService: SampleDataService) {
-        super();
-    }
-
-    create = async (req: Request, res: Response) => {
-        const { title, completed } = req.body;
-        const newItem = await this.sampleDataService.create({ title, completed });
-        return this.handleSuccess(res, newItem, "Sample data created successfully", 201);
-    };
+// bootstrap/routes.ts
+export function setupRoutes(app: Express): void {
+    const sampleDataRouter = Router();
+    registerSampleDataRoutes(
+        sampleDataRouter,
+        container.resolve<SampleDataController>(SampleDataController)
+    );
+    app.use("/sample-data", sampleDataRouter);
 }
 ```
 
-### D. Services (`src/services/sample-data.service.ts`)
-Services receive repositories via constructor injection and contain business logic:
+### B. Route Registration (`src/interfaces/http/routes/sample-data.routes.ts`)
+
+Route files are pure mapping functions. They declare which middleware runs and which controller method handles each endpoint:
 
 ```typescript
-export class SampleDataService {
-    constructor(private readonly repository: SampleDataRepository) {}
+export function registerSampleDataRoutes(
+    router: Router,
+    controller: SampleDataController,
+): void {
+    router.post("/", authenticate, validate(createSampleDataSchema), controller.create);
+    router.delete("/:id", authenticate, validate(idParamSchema), controller.remove);
+}
+```
 
-    async create(data: CreateSampleDataRequest): Promise<SampleData> {
-        return this.repository.create(data);
+No business logic. No database calls. No imports from the container.
+
+### C. Validators (`src/interfaces/http/validators/sample-data.validators.ts`)
+
+Zod schemas live in the interfaces layer because they are a transport concern — they validate raw HTTP input. The application layer knows nothing about Zod.
+
+```typescript
+export const createSampleDataSchema = z.object({
+    body: z.object({
+        title: z.string().min(1, "Title is required"),
+        completed: z.boolean().optional(),
+    }),
+});
+```
+
+The `validate` middleware runs the schema against `{ body, query, params }`. On failure it returns a structured `400` with `ZodError` details — the request never reaches the controller.
+
+### D. Controller (`src/interfaces/http/controllers/sample-data.controller.ts`)
+
+Controllers are deliberately thin. Their only job is to translate HTTP → use case → HTTP response:
+
+```typescript
+create = async (req: Request, res: Response): Promise<Response> => {
+    const newItem = await this.createSampleDataUseCase.execute(req.body);
+    return this.handleSuccess(res, newItem, "Sample data created successfully", 201);
+};
+```
+
+No business rules. No database calls. No domain logic.
+
+### E. Use Case (`src/application/use-cases/sample-data/CreateSampleData.ts`)
+
+Use cases contain all application logic. They are pure TypeScript classes with no Express, no Zod, no SQLite — just interfaces:
+
+```typescript
+export class CreateSampleDataUseCase {
+    constructor(private repository: SampleDataRepository) {}
+
+    async execute(request: CreateSampleDataRequest) {
+        return this.repository.save({
+            title: request.title,
+            completed: request.completed ?? false,
+        });
     }
 }
 ```
 
-### E. Repositories (`src/repositories/sample-data.repository.ts`)
-Repositories encapsulate all data access. When a real database is added, only this layer changes:
+`SampleDataRepository` here is the **interface** from the domain layer — not the SQLite implementation. The use case has no idea how data is actually stored.
+
+### F. Domain Entity & Repository Interface (`src/domain/`)
+
+The domain layer defines the shape of core business objects and the contracts for persisting them:
 
 ```typescript
-export class SampleDataRepository {
-    async create(data: CreateSampleDataRequest): Promise<SampleData> {
-        // In-memory implementation (swap for Prisma/Drizzle queries later)
-        const newItem = { id: this.nextId++, ...data };
-        this.sampleData.push(newItem);
-        return newItem;
+// domain/entities/SampleData.ts
+export class SampleData {
+    constructor(
+        public readonly id: number,
+        public readonly title: string,
+        public readonly completed: boolean = false,
+    ) {}
+}
+
+// domain/repositories/SampleDataRepository.ts
+export interface SampleDataRepository {
+    findAll(): Promise<SampleData[]>;
+    findById(id: number): Promise<SampleData | null>;
+    save(data: Omit<SampleData, "id">): Promise<SampleData>;
+    delete(id: number): Promise<boolean>;
+}
+```
+
+The domain layer imports nothing from Express, Zod, SQLite, or any other framework. It is the most stable, most testable layer in the system.
+
+### G. Infrastructure Repository (`src/infrastructure/repositories/sample-data.repository.ts`)
+
+The SQLite implementation satisfies the domain interface. When the database changes, only this file changes:
+
+```typescript
+export class SqliteSampleDataRepository implements ISampleDataRepository {
+    async save(data: Omit<SampleData, "id">): Promise<SampleData> {
+        const stmt = db.prepare(
+            "INSERT INTO sample_data (title, completed) VALUES (?, ?) RETURNING *"
+        );
+        const row = stmt.get(data.title, data.completed ? 1 : 0) as Record<string, unknown>;
+        return toSampleData(row);
     }
 }
 ```
 
-## 5. BaseController
+## 5. Composition Root & Dependency Injection (`src/bootstrap/container.ts`)
 
-All controllers extend `BaseController` (`src/controllers/base.controller.ts`), which provides three standardized response methods:
+The project uses a hand-rolled DI container — a lightweight `Map` keyed by class constructors. This is the **only** place in the codebase where `new` is called on infrastructure classes:
 
-- **`handleSuccess(res, data, message?, statusCode?)`** — Returns a JSON success response via `ApiResponse.success()`.
-- **`handleError(res, message, statusCode?, details?)`** — Returns a JSON error response via `ApiResponse.error()`. Logs internal errors (500+) automatically.
+```
+Infrastructure (repositories, security)
+        ↓ constructor injection
+Application (use cases)
+        ↓ constructor injection
+Interfaces (controllers)
+        ↓ registered into container
+Bootstrap (routes.ts resolves & mounts)
+```
+
+Using the class constructor as the DI token (`container.register(UserController, instance)`) provides type-safe resolution without decorators or a reflection API.
+
+## 6. Ports & Adapters (`src/application/ports/`)
+
+The application layer defines **ports** — interfaces for infrastructure services it depends on but does not own:
+
+```typescript
+// application/ports/PasswordHasher.ts
+export interface PasswordHasher {
+    hash(password: string): Promise<string>;
+    verify(password: string, hash: string): Promise<boolean>;
+}
+```
+
+The `LoginUseCase` depends on `PasswordHasher` (the port), not on `Argon2PasswordHasher` (the adapter). This means the use case can be unit-tested with a mock hasher, and the hashing library can be swapped without changing any application code.
+
+The same pattern applies to `TokenService` — the application defines the interface, and `JoseTokenService` in infrastructure implements it.
+
+## 7. BaseController (`src/interfaces/http/controllers/base.controller.ts`)
+
+All controllers extend `BaseController`, which provides three standardized response methods:
+
+- **`handleSuccess(res, data, message?, statusCode?)`** — Returns `{ success: true, message, data }` via `ApiResponse.success()`.
+- **`handleError(res, message, statusCode?, details?)`** — Returns `{ success: false, message, error }` via `ApiResponse.error()`. Logs 500+ errors automatically.
 - **`handleNoContent(res)`** — Returns a `204 No Content` response for successful deletions.
 
-This ensures no controller ever calls raw `res.status().json()` directly, keeping response formatting uniform across the entire API.
+No controller ever calls `res.status().json()` directly. Response formatting is uniform across the entire API.
 
-## 6. Structured Error Handling
+## 8. Structured Error Handling
 
-The project uses typed error classes in `src/utils/errors.ts` instead of raw `Error` objects with ad-hoc status codes:
+The project uses typed error classes rather than raw `Error` objects. Domain errors live in `src/domain/errors/`:
 
-- **`AppError`** — Base class with `statusCode` and `isOperational` flag
-- **`NotFoundError`** — 404 errors with resource-specific messages
-- **`ValidationError`** — 400 errors with attached detail payloads
+- **`DomainError`** — Base domain error extending `AppError`
+- **`NotFoundError`** — 404 errors (`"Sample Data not found"`)
+- **`ValidationError`** — 400 errors with structured details
 - **`UnauthorizedError`** — 401 authentication failures
 - **`ForbiddenError`** — 403 authorization failures
+- **`UserAlreadyExistsError`** — Domain-specific conflict error
 
-The auth middleware throws `UnauthorizedError` directly, allowing the global error handler in `app.ts` to format all error responses consistently.
+Transport-level errors (`AppError`, `UnauthorizedError`) live in `src/utils/errors.ts` and are used by the auth middleware and global error handler.
 
-## 7. Testing Framework
+All errors bubble up to the global error handler in `app.ts`, which formats every error response consistently. Use cases simply `throw new NotFoundError("Sample Data")` and the framework layer handles the rest.
 
-The project utilizes `Vitest` as its testing runner and `Supertest` for integration testing.
+## 9. Testing
 
-- **Unit Tests**: Found in `*.service.test.ts`, verifying independent business logic.
-- **Integration Tests**: Found in `*.routes.test.ts`, verifying end-to-end API correctness.
-- **Environment**: Test-specific env vars are provided via `vitest.config.ts`.
+The project uses `Vitest` as the test runner and `Supertest` for integration testing.
 
-## 8. API Documentation (Scalar)
+**Unit tests** (`src/application/use-cases/**/*.test.ts`) test use cases in complete isolation using `vi.fn()` mocks for all dependencies. Since use cases depend only on interfaces (ports and repository contracts), no database or HTTP server is needed:
 
-The project automatically generates a visual API playground using **Scalar / OpenAPI 3.0**.
+```typescript
+// Login.test.ts
+userRepository = { findByEmail: vi.fn(), /* ... */ } as unknown as UserRepository;
+passwordHasher = { hash: vi.fn(), verify: vi.fn() } as unknown as PasswordHasher;
+loginUseCase = new LoginUseCase(userRepository, passwordHasher, tokenService);
+```
 
-- **Implementation**: Managed in `src/utils/swagger.ts`. It uses `@asteasolutions/zod-to-openapi` to programmatically generate the OpenAPI specification directly from your code and Zod schemas.
-- **Single Registration**: Zod is extended with OpenAPI support once in `src/utils/openapi-registry.ts`. Schema files import the shared `registry` to register their types.
-- **Dry Documentation**: By registering Zod schemas with the central `OpenAPIRegistry`, your documentation stays 100% in sync with your validation logic.
-- **Access**: You can [access live interactive documentation](http://localhost:3000/api-docs).
+**Integration tests** (`src/interfaces/http/routes/**/*.test.ts`) spin up the real Express app via Supertest and verify end-to-end API correctness including middleware, validation, authentication, and error responses.
 
-## 9. Configuration Management (Zod + process.env)
+Test-specific environment variables are provided via `vitest.config.ts`.
 
-Environment-based configuration is validated directly from `process.env` using Zod.
+## 10. API Documentation (Scalar)
 
-- **Single Source**: All configuration reads from environment variables (loaded via Node.js `--env-file` flag).
-- **Validation**: On startup, `src/utils/config.ts` parses `process.env` against a Zod schema with defaults and coercion (e.g., `PORT` string → number).
-- **Fail Fast**: The app exits immediately with a descriptive error if any required variable is missing or invalid.
-- **No Extra Libraries**: No `node-config`, `dotenv`, or other config packages — just Zod and `process.env`.
+The project auto-generates an interactive API playground using **Scalar / OpenAPI 3.0**.
 
-## 10. Logging (Pino)
+- **Definitions**: Path and schema definitions live in `src/interfaces/http/openapi/` — one file per domain area (`auth.openapi.ts`, `sample-data.openapi.ts`, etc.). This keeps OpenAPI as an interfaces-layer concern.
+- **Registry**: `src/utils/openapi-registry.ts` holds the singleton `OpenAPIRegistry`. The openapi files import it and register their definitions as side effects.
+- **Generator**: `src/utils/swagger.ts` imports each openapi module, then runs `OpenApiGeneratorV3` over `registry.definitions` to produce the final spec.
+- **Access**: Interactive documentation is available at [http://localhost:3000/api-docs](http://localhost:3000/api-docs).
+
+## 11. Configuration Management (`src/utils/config.ts`)
+
+All environment-based configuration is validated at startup using Zod.
+
+- **Single source**: All config reads from `process.env` (loaded via Node.js `--env-file` flag).
+- **Validation**: `config.ts` parses `process.env` against a Zod schema with defaults and coercion (e.g., `PORT` string → number).
+- **Fail fast**: The app exits immediately with a descriptive error if any required variable is missing or invalid.
+- **No extra libraries**: No `dotenv`, `node-config`, or similar packages — just Zod and `process.env`.
+
+## 12. Logging (Pino)
 
 The project uses **Pino** for high-performance structured JSON logging.
 
-- **Structured Output**: Every log entry is a JSON object with `method`, `url`, `statusCode`, `durationMs`, and `requestId` fields.
-- **Request Tracing**: The `requestId` from the request-id middleware is included in every log entry, enabling end-to-end request tracing.
-- **Dev-Friendly**: Uses `pino-pretty` in non-production environments for colorized, readable console output.
-- **Production-Ready**: Outputs raw JSON in production for direct ingestion by log aggregators (ELK, Datadog, etc.).
+- **Structured output**: Every log entry is a JSON object with `method`, `url`, `statusCode`, `durationMs`, and `requestId` fields.
+- **Request tracing**: The `requestId` from the request-id middleware is included in every log entry, enabling full end-to-end request tracing.
+- **Dev-friendly**: Uses `pino-pretty` in non-production environments for colorized, readable console output.
+- **Production-ready**: Outputs raw JSON in production for direct ingestion by log aggregators (ELK, Datadog, etc.).
 
-## 11. Security
+## 13. Security
 
-### Rate Limiting
+### Rate Limiting (`src/interfaces/http/middleware/rate-limit.middleware.ts`)
 - **Global limiter**: 100 requests per 15 minutes per IP, applied to all routes.
-- **Auth limiter**: 5 requests per 15 minutes per IP, applied specifically to `/auth/login` to prevent brute-force attacks.
+- **Auth limiter**: 5 requests per 15 minutes per IP, applied specifically to `POST /auth/login` to prevent brute-force attacks.
 
 ### CORS
-- Configurable via the `CORS_ORIGIN` environment variable.
-- Defaults to `*` for development. Set to your frontend domain in production (e.g., `CORS_ORIGIN=https://yourdomain.com`).
+- Configurable via the `CORS_ORIGIN` environment variable. Defaults to `*` for development.
 
 ### Body Size Limit
-- `express.json()` and `express.urlencoded()` are capped at `16kb` to prevent large payload denial-of-service attacks.
+- `express.json()` and `express.urlencoded()` capped at `16kb` to prevent large-payload denial-of-service attacks.
 
-## 12. Graceful Shutdown
+## 14. Graceful Shutdown
 
-The application is configured to handle termination signals (`SIGTERM`, `SIGINT`) gracefully.
+Handles `SIGTERM` and `SIGINT`. The `gracefulShutdown` function in `src/server.ts` stops accepting connections, waits for in-flight requests to drain, then calls `disconnectDatabase()` from `src/infrastructure/database/sqlite.ts`. A 10-second hard-exit timer prevents stalled cleanup from hanging the process.
 
-- **Cleanup**: The `gracefulShutdown` function in `src/server.ts` automatically triggers the `disconnectDatabase()` utility in `src/utils/db.ts` to ensure all external resources are released properly.
+## 15. Standardized API Responses (`src/utils/api-response.ts`)
 
-## 13. Standardized API Responses
+All responses follow a consistent JSON envelope:
 
-To ensure consistency for frontend consumers, the backend utilizes a standardized JSON response format via the `ApiResponse` helper module.
+- **Success**: `{ success: true, message: "...", data: { ... } }`
+- **Error**: `{ success: false, message: "...", error: { code: 400, details: [...] } }`
 
-- **Success Pattern**: Returns `{ success: true, message: "...", data: [...] }`.
-- **Error Pattern**: Returns `{ success: false, message: "...", error: { code: 400, details: [...] } }`.
+The `ApiResponse` module is used by `BaseController` and the global error handler — no code in the codebase formats JSON responses directly.
 
-The `ApiResponse` module is used internally by `BaseController` — controllers never format JSON directly.
+## 16. Bearer Token Authentication
 
-## 14. Bearer Token Authentication (JWT)
+JWT authentication uses **`jose`** — a modern, ESM-native JOSE library.
 
-The project includes built-in support for securing routes using **JSON Web Tokens (JWT)**.
+- **Middleware**: `src/interfaces/http/middleware/auth.middleware.ts` extracts the Bearer token from the `Authorization` header and verifies it with `jwtVerify`. It throws `UnauthorizedError` on failure, which the global error handler catches.
+- **Typed payload**: The decoded token is cast to `JwtPayload` from `src/types/auth.types.ts`, providing type-safe access to `id`, `email`, and `role`.
+- **Password hashing**: `Argon2PasswordHasher` in `src/infrastructure/security/` uses `argon2` (OWASP-recommended) for password verification. The application layer depends only on the `PasswordHasher` port interface.
+- **Token signing**: `JoseTokenService` in `src/infrastructure/security/` implements the `TokenService` port. The `LoginUseCase` calls `tokenService.sign()` without knowing the JWT library.
+- **Secret management**: Controlled via the `JWT_SECRET` environment variable.
 
-- **Library**: Uses `jose` — a modern, maintained, ESM-native JOSE library.
-- **Middleware**: The `authenticate` middleware in `src/middleware/auth.middleware.ts` extracts the Bearer token from the `Authorization` header and verifies it using `jwtVerify`. It throws `UnauthorizedError` on failure, which the global error handler catches and formats.
-- **Typed Payload**: The decoded token is cast to `JwtPayload` (defined in `src/types/auth.types.ts`), providing type-safe access to `id`, `email`, and `role`.
-- **Password Hashing**: Uses `argon2` (OWASP-recommended) instead of bcrypt for password verification.
-- **Secret Management**: Managed via the `JWT_SECRET` environment variable.
+## 17. Request Tracing
 
-## 15. Request Tracing
+Every request is assigned a unique ID via `src/interfaces/http/middleware/request-id.middleware.ts`.
 
-Every incoming request is assigned a unique ID via the `requestId` middleware in `src/middleware/request-id.middleware.ts`.
-
-- **Header**: The `X-Request-Id` header is set on every response.
-- **Client-Provided**: If the client sends an `X-Request-Id` header, it is preserved; otherwise, a new UUID is generated.
-- **Structured Logging**: The ID is included in every Pino log entry, enabling full end-to-end tracing of a single request through the system.
-- **Access**: Available in `res.locals.requestId` for use in controllers, services, and error reporting.
+- **Header**: `X-Request-Id` is set on every response.
+- **Client-provided**: If the client sends an `X-Request-Id` header it is preserved; otherwise a UUID is generated.
+- **Structured logging**: The ID is attached to every Pino log entry, enabling complete request tracing through the system.
+- **Available in locals**: Accessible via `res.locals.requestId` throughout the request lifecycle.

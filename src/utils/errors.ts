@@ -14,21 +14,6 @@ export class AppError extends Error {
 	}
 }
 
-export class NotFoundError extends AppError {
-	constructor(resource = "Resource") {
-		super(`${resource} not found`, 404);
-	}
-}
-
-export class ValidationError extends AppError {
-	public readonly details: unknown;
-
-	constructor(message = "Validation failed", details: unknown = null) {
-		super(message, 400);
-		this.details = details;
-	}
-}
-
 export class UnauthorizedError extends AppError {
 	constructor(message = "Authentication required") {
 		super(message, 401);
@@ -40,3 +25,4 @@ export class ForbiddenError extends AppError {
 		super(message, 403);
 	}
 }
+

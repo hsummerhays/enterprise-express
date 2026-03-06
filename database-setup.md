@@ -2,6 +2,8 @@
 
 This guide provides instructions and boilerplate for connecting your TypeScript Express backend to **MongoDB** and **PostgreSQL**. Both integrate with the project's strict layered architecture — database queries belong in the **Repository** layer.
 
+> **Note:** By default, this project ships with a zero-dependency, in-memory **SQLite** connection using the new `node:sqlite` module (available in Node.js 22.5+). It's initialized in `src/infrastructure/database/sqlite.ts`. If you need to scale up to an external database, follow the guides below.
+
 ---
 
 ## 1. MongoDB Setup (NoSQL)
@@ -15,7 +17,7 @@ npm install mongoose
 npm install --save-dev @types/mongoose
 ```
 
-### Connection Boilerplate (`src/utils/db.ts`)
+### Connection Boilerplate (`src/infrastructure/database/mongo.ts`)
 
 ```typescript
 import mongoose from 'mongoose';
@@ -92,7 +94,7 @@ POSTGRES_URI=postgresql://user:password@localhost:5432/your_db
 To initialize the connection on startup:
 
 ```typescript
-import { connectMongo } from './utils/db.js';
+import { connectMongo } from './infrastructure/database/mongo.js';
 
 // ... after logger setup
 await connectMongo();
@@ -104,11 +106,11 @@ To ensure connections are closed correctly during graceful shutdown, ensure `dis
 
 ## 5. Repository Integration
 
-When a database is connected, update your Repository classes to use it instead of in-memory arrays. The rest of the architecture (Routes → Controllers → Services → Repositories) stays the same:
+When a database is connected, update your Repository classes to use it instead of in-memory arrays. The rest of the architecture (Controllers → Use Cases → Repositories) stays the same:
 
 ```typescript
-// src/repositories/sample-data.repository.ts
-export class SampleDataRepository {
+// src/infrastructure/repositories/sample-data.repository.ts
+export class SampleDataRepository implements ISampleDataRepository {
     async findAll(): Promise<SampleData[]> {
         // Replace in-memory logic with database query
         const result = await dbQuery('SELECT * FROM sample_data');

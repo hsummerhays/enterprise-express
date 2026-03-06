@@ -6,12 +6,10 @@ import express, {
 	type Response,
 } from "express";
 import helmet from "helmet";
-import { requestLogger } from "./interfaces/middleware/log.middleware.js";
-import { globalLimiter } from "./interfaces/middleware/rate-limit.middleware.js";
-import { requestId } from "./interfaces/middleware/request-id.middleware.js";
-import authRoutes from "./interfaces/routes/auth.routes.js";
-import healthRoutes from "./interfaces/routes/health.routes.js";
-import sampleDataRoutes from "./interfaces/routes/sample-data.routes.js";
+import { requestLogger } from "./interfaces/http/middleware/log.middleware.js";
+import { globalLimiter } from "./interfaces/http/middleware/rate-limit.middleware.js";
+import { requestId } from "./interfaces/http/middleware/request-id.middleware.js";
+import { setupRoutes } from "./bootstrap/routes.js";
 import ApiResponse from "./utils/api-response.js";
 import config from "./utils/config.js";
 import { AppError } from "./utils/errors.js";
@@ -34,9 +32,7 @@ app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 
 // --- Routes ---
-app.use("/health", healthRoutes);
-app.use("/auth", authRoutes);
-app.use("/sample-data", sampleDataRoutes);
+setupRoutes(app);
 
 // --- API Documentation (Scalar) ---
 app.use(
@@ -50,7 +46,7 @@ app.use(
 // --- Root ---
 app.get("/", (_req: Request, res: Response) => {
 	res.status(200).json({
-		message: "WSL/Bash Backend is live (TypeScript)!",
+		message: "Enterprise Express is live!",
 		timestamp: new Date().toISOString(),
 	});
 });

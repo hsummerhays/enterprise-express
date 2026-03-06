@@ -21,19 +21,19 @@ This document maps the architectural patterns in this project to their equivalen
 ## 🧩 Architectural Equivalents
 
 ### 1. Unified Controllers
-In this project, all controllers extend `BaseController` (`src/controllers/*.ts`). This mirrors ASP.NET Core's `ControllerBase`.
-- **This project**: `export class Controller extends BaseController { constructor(private service: Service) { super(); } }`
-- **.NET**: `public class Controller(IService service) : ControllerBase { ... }` (Primary Constructor)
+In this project, all controllers extend `BaseController` (`src/interfaces/http/controllers/*.ts`). This mirrors ASP.NET Core's `ControllerBase`.
+- **This project**: `export class Controller extends BaseController { constructor(private useCase: UseCase) { super(); } }`
+- **.NET**: `public class Controller(IUseCase useCase) : ControllerBase { ... }` (Primary Constructor)
 - **`BaseController`** provides `handleSuccess()`, `handleError()`, and `handleNoContent()` — the same pattern as `Ok()`, `BadRequest()`, and `NoContent()` in ASP.NET.
 
 ### 2. Repository Pattern
-Data access is encapsulated in `src/repositories/*.ts`, mirroring the Repository Pattern used extensively in .NET with Entity Framework Core.
+Data access is encapsulated in `src/infrastructure/repositories/*.ts`, mirroring the Repository Pattern used extensively in .NET with Entity Framework Core.
 - **This project**: `class SampleDataRepository { async findAll() { ... } }`
 - **.NET**: `class SampleDataRepository : IRepository<SampleData> { ... }`
 
 ### 3. Dependency Injection (DI)
-We implement constructor-based DI through a 4-layer chain: Routes instantiate Repositories → pass them to Services → pass Services to Controllers.
-- **Pattern**: While .NET uses a runtime container (`IServiceCollection`), this project uses a **Composition Root** pattern within the routers. This ensures compile-time safety and zero reflection overhead.
+The project uses a hand-rolled DI container in `src/bootstrap/container.ts` — the single **Composition Root** that wires the entire object graph: repositories → use cases → controllers.
+- **Pattern**: While .NET uses `IServiceCollection` with reflection-based resolution, this project uses class constructors as DI tokens (`container.register(UserController, instance)`). Resolution is type-safe, zero-reflection, and the entire dependency graph is visible in one file — analogous to manually configuring `Program.cs` with explicit `AddScoped<IRepository, SqliteRepository>()`.
 
 ### 4. Middleware Pipeline
 `src/app.ts` defines the middleware order.
@@ -41,7 +41,7 @@ We implement constructor-based DI through a 4-layer chain: Routes instantiate Re
 - **Auth middleware** throws typed `UnauthorizedError` exceptions, mirroring ASP.NET's `AuthenticationHandler` which throws `AuthenticationFailureException`.
 
 ### 5. Custom Request Objects
-Our `AuthenticatedRequest` interface in `auth.middleware.ts` mirrors the practice of extending the `HttpContext.User` or using custom `Request` objects in modern Minimal APIs.
+Our `AuthenticatedRequest` interface in `src/interfaces/http/middleware/auth.middleware.ts` mirrors the practice of extending `HttpContext.User` or using custom `Request` objects in modern Minimal APIs.
 
 ## 🚀 Native Performance
 Where .NET requires a JIT compilation or NativeAOT, this project provides an immediately responsive experience on WSL2 with standard V8 optimization, making it ideal for micro-containerized workflows.
