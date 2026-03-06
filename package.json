@@ -1,5 +1,5 @@
 {
-	"name": "express-backend",
+	"name": "enterprise-express",
 	"version": "1.0.0",
 	"description": "",
 	"main": "dist/server.js",
