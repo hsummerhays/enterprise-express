@@ -6,12 +6,12 @@ import express, {
 	type Response,
 } from "express";
 import helmet from "helmet";
-import { requestLogger } from "./middleware/log.middleware.js";
-import { globalLimiter } from "./middleware/rate-limit.middleware.js";
-import { requestId } from "./middleware/request-id.middleware.js";
-import authRoutes from "./routes/auth.routes.js";
-import healthRoutes from "./routes/health.routes.js";
-import sampleDataRoutes from "./routes/sample-data.routes.js";
+import { requestLogger } from "./interfaces/middleware/log.middleware.js";
+import { globalLimiter } from "./interfaces/middleware/rate-limit.middleware.js";
+import { requestId } from "./interfaces/middleware/request-id.middleware.js";
+import authRoutes from "./interfaces/routes/auth.routes.js";
+import healthRoutes from "./interfaces/routes/health.routes.js";
+import sampleDataRoutes from "./interfaces/routes/sample-data.routes.js";
 import ApiResponse from "./utils/api-response.js";
 import config from "./utils/config.js";
 import { AppError } from "./utils/errors.js";

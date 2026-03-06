@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import type { HealthService } from "../services/health.service.js";
+import type { HealthService } from "../../application/services/health.service.js";
 import { BaseController } from "./base.controller.js";
 
 export class HealthController extends BaseController {

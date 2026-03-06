@@ -1,6 +1,6 @@
 import type { Response } from "express";
-import ApiResponse from "../utils/api-response.js";
-import logger from "../utils/logger.js";
+import ApiResponse from "../../utils/api-response.js";
+import logger from "../../utils/logger.js";
 
 /**
  * Base Controller providing standard response formatting.

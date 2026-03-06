@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import type { AuthService } from "../services/auth.service.js";
+import type { AuthService } from "../../application/services/auth.service.js";
 import { BaseController } from "./base.controller.js";
 
 export class AuthController extends BaseController {

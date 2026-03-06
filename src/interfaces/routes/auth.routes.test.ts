@@ -1,6 +1,6 @@
 import request from "supertest";
 import { describe, expect, it } from "vitest";
-import app from "../app.js";
+import app from "../../app.js";
 
 describe("Auth Routes API (Integration)", () => {
 	it("POST /auth/login should authenticate valid credentials", async () => {

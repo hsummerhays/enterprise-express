@@ -1,6 +1,6 @@
 import app from "./app.js";
 import config from "./utils/config.js";
-import { disconnectDatabase } from "./utils/db.js";
+import { disconnectDatabase } from "./infrastructure/database/db.js";
 import logger from "./utils/logger.js";
 
 const PORT = config.app.port || 3000;

@@ -2,9 +2,9 @@ import { Router } from "express";
 import { SampleDataController } from "../controllers/sample-data.controller.js";
 import { authenticate } from "../middleware/auth.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
-import { SampleDataRepository } from "../repositories/sample-data.repository.js";
-import { createSampleDataSchema } from "../schemas/sample-data.schema.js";
-import { SampleDataService } from "../services/sample-data.service.js";
+import { SampleDataRepository } from "../../infrastructure/repositories/sample-data.repository.js";
+import { createSampleDataSchema } from "../../schemas/sample-data.schema.js";
+import { SampleDataService } from "../../application/services/sample-data.service.js";
 
 const router = Router();
 

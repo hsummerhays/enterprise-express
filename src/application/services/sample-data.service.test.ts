@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SampleDataRepository } from "../repositories/sample-data.repository.js";
+import { SampleDataRepository } from "../../infrastructure/repositories/sample-data.repository.js";
 import { SampleDataService } from "./sample-data.service.js";
 
 describe("SampleDataService", () => {

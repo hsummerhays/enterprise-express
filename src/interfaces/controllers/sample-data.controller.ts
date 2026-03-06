@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import type { SampleDataService } from "../services/sample-data.service.js";
+import type { SampleDataService } from "../../application/services/sample-data.service.js";
 import { BaseController } from "./base.controller.js";
 
 export class SampleDataController extends BaseController {

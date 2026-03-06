@@ -1,5 +1,5 @@
 import { rateLimit } from "express-rate-limit";
-import ApiResponse from "../utils/api-response.js";
+import ApiResponse from "../../utils/api-response.js";
 
 /**
  * General rate limiter for all routes.

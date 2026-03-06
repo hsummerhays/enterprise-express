@@ -1,8 +1,8 @@
-import type { SampleDataRepository } from "../repositories/sample-data.repository.js";
+import type { SampleDataRepository } from "../../infrastructure/repositories/sample-data.repository.js";
 import type {
 	CreateSampleDataRequest,
 	SampleData,
-} from "../schemas/sample-data.schema.js";
+} from "../../schemas/sample-data.schema.js";
 
 export class SampleDataService {
 	private readonly repository: SampleDataRepository;

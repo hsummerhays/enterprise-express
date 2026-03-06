@@ -1,7 +1,7 @@
 import type {
 	CreateSampleDataRequest,
 	SampleData,
-} from "../schemas/sample-data.schema.js";
+} from "../../schemas/sample-data.schema.js";
 
 export class SampleDataRepository {
 	private sampleData: SampleData[];

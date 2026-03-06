@@ -1,8 +1,8 @@
 import { SignJWT } from "jose";
 import request from "supertest";
 import { beforeAll, describe, expect, it } from "vitest";
-import app from "../app.js";
-import config from "../utils/config.js";
+import app from "../../app.js";
+import config from "../../utils/config.js";
 
 describe("Sample Data Routes API (Integration)", () => {
 	let authToken: string;

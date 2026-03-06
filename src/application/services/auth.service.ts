@@ -1,8 +1,8 @@
 import * as argon2 from "argon2";
 import { SignJWT } from "jose";
-import type { AuthRepository } from "../repositories/auth.repository.js";
-import type { JwtPayload } from "../types/auth.types.js";
-import config from "../utils/config.js";
+import type { AuthRepository } from "../../infrastructure/repositories/auth.repository.js";
+import type { JwtPayload } from "../../types/auth.types.js";
+import config from "../../utils/config.js";
 
 export class AuthService {
 	private readonly jwtSecret: Uint8Array;
