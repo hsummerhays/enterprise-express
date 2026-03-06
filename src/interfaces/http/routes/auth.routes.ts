@@ -1,4 +1,4 @@
-import { Router } from "express";
+import type { Router } from "express";
 import type { AuthController } from "../controllers/auth.controller.js";
 import { authLimiter } from "../middleware/rate-limit.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";

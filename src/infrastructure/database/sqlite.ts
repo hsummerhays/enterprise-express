@@ -19,6 +19,7 @@ function initializeDatabase(): void {
 			name TEXT NOT NULL,
 			email TEXT UNIQUE NOT NULL,
 			passwordHash TEXT NOT NULL,
+			role TEXT NOT NULL DEFAULT 'user',
 			createdAt TEXT NOT NULL
 		)
 	`);
@@ -40,13 +41,14 @@ function initializeDatabase(): void {
 
 	// Seed admin user
 	const userStmt = db.prepare(
-		"INSERT OR IGNORE INTO users (id, name, email, passwordHash, createdAt) VALUES (?, ?, ?, ?, ?)",
+		"INSERT OR IGNORE INTO users (id, name, email, passwordHash, role, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
 	);
 	userStmt.run(
 		1,
 		"Admin User",
 		"admin@example.com",
 		"$argon2id$v=19$m=65536,t=3,p=4$/0iA+F0yh+ie1t69J4hXlw$ukjP6aYW29K1c2TMXAp/qty7R680rfuC+WyOQMgLjdE",
+		"admin",
 		new Date().toISOString(),
 	);
 

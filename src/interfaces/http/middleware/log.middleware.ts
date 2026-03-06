@@ -10,14 +10,16 @@ export const requestLogger = (
 	res.on("finish", () => {
 		const duration = Date.now() - start;
 		const requestId = res.locals.requestId as string | undefined;
-		logger.info({
-			msg: `${req.method} ${req.originalUrl} - ${res.statusCode}`,
-			method: req.method,
-			url: req.originalUrl,
-			statusCode: res.statusCode,
-			durationMs: duration,
-			...(requestId && { requestId }),
-		});
+		logger.info(
+			{
+				method: req.method,
+				url: req.originalUrl,
+				statusCode: res.statusCode,
+				durationMs: duration,
+				...(requestId && { requestId }),
+			},
+			`${req.method} ${req.originalUrl} - ${res.statusCode}`,
+		);
 	});
 	next();
 };

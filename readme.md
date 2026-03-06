@@ -15,6 +15,29 @@ implementing Clean Architecture and production-ready service patterns.
 
 ---
 
+## Table of Contents
+
+- [Project Status](#project-status)
+- [1. Introduction](#1-introduction)
+- [2. Why Most Express Apps Become Unmaintainable](#2-why-most-express-apps-become-unmaintainable)
+- [3. Architecture Overview](#3-architecture-overview)
+- [4. Clean Architecture Diagram](#4-clean-architecture-diagram)
+- [5. Dependency Rule](#5-dependency-rule)
+- [6. Request Lifecycle](#6-request-lifecycle)
+- [7. Example Feature Flow](#7-example-feature-flow)
+- [8. Folder Structure](#8-folder-structure)
+- [9. Layer-First vs Feature-First Organization](#9-layer-first-vs-feature-first-organization)
+- [10. Architectural Goals](#10-architectural-goals)
+- [11. Creating a New Feature](#11-creating-a-new-feature)
+- [12. Composition Root](#12-composition-root)
+- [13. Replaceable Infrastructure](#13-replaceable-infrastructure)
+- [14. Transaction Boundaries and Unit of Work](#14-transaction-boundaries-and-unit-of-work)
+- [15. Architecture Documentation](#15-architecture-documentation)
+- [16. Testing Strategy](#16-testing-strategy)
+- [17. Health Check](#17-health-check)
+- [18. Running the Project](#18-running-the-project)
+
+---
 
 ## Project Status
 
@@ -370,14 +393,16 @@ src/
 │
 ├── domain/                           ← Core business rules (zero external dependencies)
 │   ├── entities/                     ← User, SampleData
-│   ├── repositories/                 ← Repository interfaces (contracts, not implementations)
-│   ├── value-objects/                ← Email, etc.
-│   └── errors/                       ← NotFoundError, ValidationError, UnauthorizedError, etc.
+│   ├── repositories/                 ← Repository interfaces + SaveUserData type
+│   ├── value-objects/                ← Custom domain value types (e.g. Email)
+│   └── errors/                       ← DomainError base + NotFoundError, ValidationError,
+│                                         UnauthorizedError, UserAlreadyExistsError, etc.
 │
 ├── application/                      ← Use cases and orchestration (no framework dependencies)
 │   ├── dto/                          ← Plain TypeScript types for inter-layer data
 │   ├── mappers/                      ← Domain entity → response DTO conversions
-│   ├── ports/                        ← PasswordHasher, TokenService, Logger interfaces
+│   ├── ports/                        ← PasswordHasherPort, TokenServicePort,
+│                                         DatabaseHealthPort, UnitOfWorkPort, LoggerPort
 │   └── use-cases/
 │       ├── auth/
 │       ├── users/
@@ -385,10 +410,13 @@ src/
 │       └── system/
 │
 ├── infrastructure/                   ← External systems (implements domain & application interfaces)
-│   ├── database/                     ← SQLite connection
-│   ├── logging/                      ← PinoLogger (implements Logger port)
-│   ├── repositories/                 ← SqliteUserRepository, SqliteSampleDataRepository
-│   └── security/                     ← Argon2PasswordHasher, JoseTokenService
+│   ├── database/                     ← SQLite connection and schema initialization
+│   ├── logging/                      ← PinoLoggerAdapter (implements LoggerPort)
+│   ├── persistence/                  ← SqliteUnitOfWorkAdapter, SqliteDatabaseHealthAdapter,
+│   │                                     InMemoryUnitOfWorkAdapter, InMemoryDatabaseHealthAdapter
+│   ├── repositories/                 ← SqliteUserRepository, SqliteSampleDataRepository,
+│   │                                     InMemoryUserRepository, InMemorySampleDataRepository
+│   └── security/                     ← Argon2PasswordHasherAdapter, JoseTokenServiceAdapter
 │
 └── interfaces/
     └── http/                         ← Express-specific code isolated here
@@ -401,7 +429,99 @@ src/
 
 This structure keeps business rules isolated, infrastructure replaceable, and the framework confined to one subdirectory.
 
-## 9. Architectural Goals
+## 9. Layer-First vs Feature-First Organization
+
+Enterprise Express uses a **layer-first** structure — code is organized by architectural role (domain, application, interfaces, infrastructure). This is a deliberate choice for a reference architecture, because the layers themselves are the teaching subject.
+
+### Layer-First (this project)
+
+```
+src/
+├── domain/
+├── application/
+├── interfaces/
+└── infrastructure/
+```
+
+Every file has an unambiguous architectural home. Reviewers learning Clean Architecture can navigate by layer and immediately understand what type of code belongs where.
+
+The trade-off appears as the system grows:
+
+```
+src/application/use-cases/
+├── auth/
+├── users/
+├── orders/
+├── payments/
+└── notifications/
+```
+
+Working on a feature requires jumping across `domain/`, `application/`, `interfaces/`, and `infrastructure/` — four directories for one change.
+
+### Feature-First
+
+An alternative used widely in large microservice codebases and DDD-inspired systems groups by business capability instead:
+
+```
+src/features/
+├── user/
+│   ├── domain/
+│   │   ├── User.ts
+│   │   └── UserRepositoryPort.ts
+│   ├── application/
+│   │   ├── CreateUser.ts
+│   │   └── GetUser.ts
+│   ├── interfaces/
+│   │   ├── UserHttpController.ts
+│   │   └── user.routes.ts
+│   └── infrastructure/
+│       ├── SqliteUserRepository.ts
+│       └── InMemoryUserRepository.ts
+├── auth/
+│   └── ...
+└── sample-data/
+    └── ...
+```
+
+Everything for a feature lives in one directory. When an engineer opens `features/user/`, they see the domain model, use cases, controller, and repository without navigating elsewhere.
+
+The dependency rules remain identical — `interfaces → application → domain`, `infrastructure → application` — the files are just co-located by feature rather than separated by layer.
+
+### Hybrid (common in production)
+
+Many teams combine both approaches: features grouped together, with shared cross-cutting concerns extracted separately.
+
+```
+src/
+├── features/
+│   ├── user/
+│   ├── auth/
+│   └── order/
+│
+├── shared/
+│   ├── middleware/
+│   ├── logging/
+│   └── config/
+│
+└── bootstrap/
+    └── container.ts
+```
+
+### Which to Choose
+
+| Concern | Layer-First | Feature-First |
+|---|---|---|
+| Learning Clean Architecture | Clear — layers are explicit | Layers are implicit |
+| Small to medium codebase | Works well | Overhead may not be worth it |
+| Large codebase (10+ features) | Cross-folder navigation | Feature is self-contained |
+| Team unfamiliar with DDD | Easier to onboard | Requires agreement on boundaries |
+| Searching by business capability | Requires knowing which layer | Immediate |
+
+Layer-first is the right default for a reference repository. Feature-first becomes the better choice when the feature count grows large enough that folder-hopping across layers becomes the dominant friction in daily development.
+
+---
+
+## 10. Architectural Goals
 
 This design enables:
 
@@ -421,7 +541,7 @@ without changing the core business logic.
 
 ---
 
-## 10. Creating a New Feature
+## 11. Creating a New Feature
 
 Enterprise Express organizes code by architectural layer. Every new feature follows the same repeatable pattern regardless of domain complexity.
 
@@ -489,7 +609,186 @@ The `SampleData` feature in this repo is a working reference implementation of t
 
 ---
 
-## 11. Architecture Documentation
+## 12. Composition Root
+
+All dependencies are assembled in one place: `src/bootstrap/`.
+
+This is the **composition root** — the single location where every interface is matched to its concrete implementation before the application starts. It is the only place in the codebase where infrastructure implementations are imported directly.
+
+### Why It Matters
+
+The domain and application layers define _what_ they need through interfaces. But something must provide the concrete implementations at runtime. Without a dedicated composition root, wiring tends to scatter — controllers start importing repositories, use cases reach for infrastructure, and the architecture degrades.
+
+Centralising it in `bootstrap/` means:
+
+- Every dependency is explicit and visible in one file
+- Swapping an implementation (SQLite → PostgreSQL) requires changing one file
+- All other layers remain fully isolated from infrastructure choices
+
+### Bootstrap Layer Structure
+
+| File | Responsibility |
+|---|---|
+| `bootstrap/container.ts` | Instantiates infrastructure and wires use cases → controllers into the DI container |
+| `bootstrap/routes.ts` | Resolves controllers from the container and mounts them onto the Express app |
+| `app.ts` | Configures Express — middleware stack, body parsing, error handler |
+| `server.ts` | Starts the HTTP listener and handles graceful shutdown (SIGTERM / SIGINT) |
+
+### Dependency Assembly in `container.ts`
+
+```typescript
+// 1. Infrastructure — concrete implementations of domain/application interfaces
+const userRepository = new SqliteUserRepository();
+const passwordHasher = new Argon2PasswordHasherAdapter();
+const tokenService = new JoseTokenServiceAdapter();
+const databaseHealth = new SqliteDatabaseHealthAdapter();
+
+// 2. Use Cases — injected through interfaces, never concrete types
+const loginUseCase = new LoginUseCase(userRepository, passwordHasher, tokenService);
+const createUserUseCase = new CreateUserUseCase(userRepository, passwordHasher);
+const getHealthStatusUseCase = new GetHealthStatusUseCase(databaseHealth);
+
+// 3. Controllers — injected with use cases
+const userController = new UserController(createUserUseCase, getAllUsersUseCase, ...);
+
+// 4. Register in the DI container for route resolution
+container.register(UserController, userController);
+```
+
+This is the **only** file in the application that imports from `infrastructure/` directly.
+
+---
+
+## 13. Replaceable Infrastructure
+
+One of the core claims of Clean Architecture is that infrastructure is a swappable detail. Enterprise Express demonstrates this concretely with two implementations of every repository interface.
+
+### Repository Implementations
+
+| Interface | SQLite (default) | In-Memory (tests/dev) |
+|---|---|---|
+| `UserRepository` | `SqliteUserRepository` | `InMemoryUserRepository` |
+| `SampleDataRepository` | `SqliteSampleDataRepository` | `InMemorySampleDataRepository` |
+| `UnitOfWorkPort` | `SqliteUnitOfWorkAdapter` | `InMemoryUnitOfWorkAdapter` |
+| `DatabaseHealthPort` | `SqliteDatabaseHealthAdapter` | `InMemoryDatabaseHealthAdapter` |
+
+The application layer — use cases, DTOs, mappers — is completely unaware of which implementation is active. Both are located in `src/infrastructure/repositories/`.
+
+### Swapping Implementations
+
+The composition root (`bootstrap/container.ts`) is the only place that changes:
+
+```typescript
+// Production — reads from SQLite
+const userRepository = new SqliteUserRepository();
+
+// Tests / development — no database required
+const userRepository = new InMemoryUserRepository();
+```
+
+Everything downstream (use cases, controllers) continues to receive a `UserRepository` interface and never knows which backing store is in use.
+
+### Why This Matters for Testing
+
+The in-memory implementations make unit tests fast and self-contained:
+
+```typescript
+// No database, no network, no test containers — just plain TypeScript
+const userRepository = new InMemoryUserRepository();
+const useCase = new CreateUserUseCase(userRepository);
+```
+
+This is the dependency inversion principle producing a measurable outcome: the test suite requires no infrastructure at all.
+
+---
+
+## 14. Transaction Boundaries and Unit of Work
+
+As services grow, use cases often need to coordinate writes across multiple repositories atomically. Without an explicit boundary, partial failures leave the system in an inconsistent state.
+
+### The Problem
+
+```typescript
+// If the second call throws, the user is saved but the audit record is not
+await userRepository.save(user);
+await auditRepository.save(auditLog);
+```
+
+### The Port
+
+The application layer defines the contract in `src/application/ports/UnitOfWorkPort.ts`:
+
+```typescript
+export interface UnitOfWorkPort {
+    runInTransaction<T>(work: () => Promise<T>): Promise<T>;
+}
+```
+
+Use cases depend on this interface — never on a database driver directly.
+
+### Using It in a Use Case
+
+```typescript
+export class CreateUserUseCase {
+    constructor(
+        private userRepository: UserRepositoryPort,
+        private auditRepository: AuditRepositoryPort,
+        private unitOfWork: UnitOfWorkPort,
+    ) {}
+
+    async execute(input: CreateUserInput) {
+        return this.unitOfWork.runInTransaction(async () => {
+            const user = await this.userRepository.save(input);
+            await this.auditRepository.record("user_created", user.id);
+            return user;
+        });
+    }
+}
+```
+
+The transaction scope is explicit, centralized, and visible in the use case signature.
+
+### Infrastructure Implementations
+
+| Interface | SQLite | In-Memory (tests/dev) |
+|---|---|---|
+| `UnitOfWorkPort` | `SqliteUnitOfWorkAdapter` | `InMemoryUnitOfWorkAdapter` |
+
+`SqliteUnitOfWorkAdapter` wraps the work in `BEGIN` / `COMMIT` / `ROLLBACK`:
+
+```typescript
+// src/infrastructure/persistence/SqliteUnitOfWorkAdapter.ts
+async runInTransaction<T>(work: () => Promise<T>): Promise<T> {
+    db.exec("BEGIN");
+    try {
+        const result = await work();
+        db.exec("COMMIT");
+        return result;
+    } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+    }
+}
+```
+
+`InMemoryUnitOfWorkAdapter` is a no-op — it simply runs the work, which is correct for an in-memory store that has no transaction concept:
+
+```typescript
+// src/infrastructure/persistence/InMemoryUnitOfWorkAdapter.ts
+async runInTransaction<T>(work: () => Promise<T>): Promise<T> {
+    return work();
+}
+```
+
+Tests that use the in-memory adapter require no database and still exercise the full use case logic.
+
+### Why Many Node Projects Miss This
+
+Most Node apps start small. Transactions are added later — by which point the code has direct ORM dependencies scattered through the business logic. Introducing `UnitOfWorkPort` early keeps transaction management a swappable infrastructure detail, consistent with every other port in the system.
+
+---
+
+## 15. Architecture Documentation
 
 Detailed architecture diagrams are maintained in the `docs/` folder:
 
@@ -507,58 +806,90 @@ The [C4 model](docs/c4-model.md) describes Enterprise Express at three levels of
 
 ---
 
-## 12. Example Tests
+## 16. Testing Strategy
 
-The project uses **Vitest** for unit tests and **Supertest** for integration tests.
+Enterprise Express uses **Vitest** for all test levels and **Supertest** for HTTP assertions. Tests are organized in a dedicated `tests/` directory that mirrors the architectural layers — the structure itself communicates that each layer is independently testable.
 
-### Integration Test (API)
+### Test Layout
+
+```
+tests/
+├── unit/
+│   └── application/          ← Use case logic, no HTTP or database
+│       ├── Login.test.ts
+│       ├── CreateUser.test.ts
+│       └── GetHealthStatus.test.ts
+│
+├── integration/              ← Repository implementations against real infrastructure
+│   └── (added as infrastructure grows)
+│
+└── e2e/                      ← Full HTTP stack via Supertest
+    ├── auth.routes.test.ts
+    ├── user.routes.test.ts
+    └── sample-data.routes.test.ts
+```
+
+Running a specific level:
+
+```bash
+npm run test:unit    # fast — no HTTP server or database required
+npm run test:e2e     # full stack via Supertest
+npm test             # all tests (CI)
+npm run test:watch   # interactive watch mode
+```
+
+### Unit Test — Application Layer
+
+Use cases are tested in complete isolation. No Express, no database, no HTTP server — just plain TypeScript with mocked port interfaces:
 
 ```typescript
-describe("Sample Data Routes API (Integration)", () => {
-    let authToken: string;
+// tests/unit/application/GetHealthStatus.test.ts
+import { GetHealthStatusUseCase } from "../../../src/application/use-cases/system/GetHealthStatus.js";
+import type { DatabaseHealthPort } from "../../../src/application/ports/DatabaseHealthPort.js";
 
-    beforeAll(async () => {
-        const secret = new TextEncoder().encode(config.auth.jwtSecret);
-        const token = await new SignJWT({ id: 1, role: "admin" })
-            .setProtectedHeader({ alg: "HS256" })
-            .setExpirationTime("1h")
-            .sign(secret);
-        authToken = `Bearer ${token}`;
-    });
+it("should report disconnected status when database is unavailable", async () => {
+    const databaseHealth: DatabaseHealthPort = { check: vi.fn().mockResolvedValue("disconnected") };
+    const useCase = new GetHealthStatusUseCase(databaseHealth);
+    const result = await useCase.execute();
 
-    it("GET /sample-data should return all items", async () => {
-        const response = await request(app).get("/sample-data");
-
-        expect(response.status).toBe(200);
-        expect(response.body.success).toBe(true);
-        expect(Array.isArray(response.body.data)).toBe(true);
-    });
-
-    it("POST /sample-data should create a new item", async () => {
-        const response = await request(app)
-            .post("/sample-data")
-            .set("Authorization", authToken)
-            .send({ title: "Test new task", completed: false });
-
-        expect(response.status).toBe(201);
-        expect(response.body.data.title).toBe("Test new task");
-    });
-
-    it("POST /sample-data should return 400 on invalid input", async () => {
-        const response = await request(app)
-            .post("/sample-data")
-            .set("Authorization", authToken)
-            .send({ completed: true }); // Missing required title
-
-        expect(response.status).toBe(400);
-        expect(response.body.message).toBe("Validation failed");
-    });
+    expect(result.status).toBe("ok");
+    expect(result.database).toBe("disconnected");
 });
 ```
 
-This demonstrates full integration testing through the entire stack — routing, middleware, validation, service, and repository — without mocking.
+The test requires no infrastructure at all — no SQLite, no network. The `DatabaseHealthPort` interface is the only dependency, and it is fully mocked. This is the dependency inversion principle producing a measurable outcome.
 
-## 13. Health Check
+### E2E Test — Full HTTP Stack
+
+Route tests exercise the entire request lifecycle through routing, middleware, validation, use cases, and the real SQLite repository:
+
+```typescript
+// tests/e2e/sample-data.routes.test.ts
+import request from "supertest";
+import app from "../../src/app.js";
+
+it("POST /sample-data should create a new item successfully", async () => {
+    const response = await request(app)
+        .post("/sample-data")
+        .set("Authorization", authToken)
+        .send({ title: "Test new task", completed: false });
+
+    expect(response.status).toBe(201);
+    expect(response.body.data.title).toBe("Test new task");
+});
+```
+
+### What the Structure Communicates
+
+A reviewer seeing `tests/unit/` and `tests/e2e/` as separate directories immediately understands that:
+
+- business logic can be tested without spinning up a server
+- the HTTP layer is independently verifiable
+- infrastructure is a swappable detail, not a test dependency
+
+This is the practical benefit of Clean Architecture made visible in the test layout.
+
+## 17. Health Check
 
 The service exposes a Production-Grade health check endpoint:
 
@@ -579,7 +910,7 @@ This endpoint can be used by Kubernetes liveness/readiness probes, Docker health
 
 ---
 
-## 14. Running the Project
+## 18. Running the Project
 
 ### Rapid Setup
 
@@ -599,8 +930,11 @@ npm run dev
 | Command | Description |
 | --- | --- |
 | `npm run dev` | Starts the server with tsx watch mode and `.env` support. |
-| `npm test` | Runs the integration and unit test suites utilizing Vitest and Supertest. |
+| `npm test` | Runs all tests (unit + e2e). For CI. |
+| `npm run test:unit` | Runs unit tests only — no database or HTTP server required. |
+| `npm run test:e2e` | Runs e2e tests only — full HTTP stack via Supertest. |
+| `npm run test:watch` | Interactive watch mode for local development. |
 | `npm run build` | Compiles TypeScript to JavaScript in `dist/`. |
 | `npm start` | Production-style start using compiled JavaScript. |
-| `npm run lint` | Runs Biome linter and formatter checks. |
-| `npm run format` | Auto-formats source code with Biome. |
+| `npm run lint` | Runs Biome linter across `src/` and `tests/`. |
+| `npm run format` | Auto-formats `src/` and `tests/` with Biome. |

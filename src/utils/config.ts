@@ -8,7 +8,7 @@ const configSchema = z.object({
 			.transform((v) => Number.parseInt(v, 10))
 			.pipe(z.number().int().nonnegative()),
 		env: z.string().min(1).default("development"),
-		corsOrigin: z.string().default("*"),
+		corsOrigin: z.string().default("http://localhost:3000"),
 	}),
 	logging: z.object({
 		level: z.enum(["debug", "info", "warn", "error"]).default("info"),

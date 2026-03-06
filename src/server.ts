@@ -1,6 +1,6 @@
 import app from "./app.js";
-import config from "./utils/config.js";
 import { disconnectDatabase } from "./infrastructure/database/sqlite.js";
+import config from "./utils/config.js";
 import logger from "./utils/logger.js";
 
 const PORT = config.app.port || 3000;
@@ -10,7 +10,6 @@ const server = app.listen(PORT, () => {
 		{
 			port: PORT,
 			env: config.app.env,
-			wsl_mode: "mirrored",
 		},
 		"Express server started successfully (TypeScript)",
 	);

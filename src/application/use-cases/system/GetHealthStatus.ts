@@ -1,20 +1,16 @@
-import db from "../../../infrastructure/database/sqlite.js";
+import type { DatabaseHealthPort } from "../../ports/DatabaseHealthPort.js";
 
 export class GetHealthStatusUseCase {
-    async execute() {
-        let databaseStatus = "connected";
-        try {
-            db.prepare("SELECT 1").get();
-        } catch (error) {
-            databaseStatus = "disconnected";
-        }
+	constructor(private readonly databaseHealth: DatabaseHealthPort) {}
 
-        return {
-            status: "ok",
-            uptime: process.uptime(),
-            database: databaseStatus,
-            timestamp: new Date().toISOString(),
-        };
-    }
+	async execute() {
+		const database = await this.databaseHealth.check();
+
+		return {
+			status: "ok",
+			uptime: process.uptime(),
+			database,
+			timestamp: new Date().toISOString(),
+		};
+	}
 }
-

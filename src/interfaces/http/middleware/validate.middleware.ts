@@ -6,11 +6,14 @@ export const validate =
 	(schema: ZodTypeAny) =>
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			await schema.parseAsync({
+			const result = (await schema.parseAsync({
 				body: req.body,
 				query: req.query,
 				params: req.params,
-			});
+			})) as any;
+			if (result.body !== undefined) req.body = result.body;
+			if (result.query !== undefined) Object.assign(req.query, result.query);
+			if (result.params !== undefined) Object.assign(req.params, result.params);
 			return next();
 		} catch (error: unknown) {
 			if (error instanceof ZodError) {

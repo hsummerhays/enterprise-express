@@ -1,5 +1,5 @@
-import type { SampleDataRepository as ISampleDataRepository } from "../../domain/repositories/SampleDataRepository.js";
 import { SampleData } from "../../domain/entities/SampleData.js";
+import type { SampleDataRepository as ISampleDataRepository } from "../../domain/repositories/SampleDataRepository.js";
 import db from "../database/sqlite.js";
 
 function toSampleData(row: Record<string, unknown>): SampleData {

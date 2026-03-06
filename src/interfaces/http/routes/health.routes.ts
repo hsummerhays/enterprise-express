@@ -1,4 +1,4 @@
-import { Router } from "express";
+import type { Router } from "express";
 import type { HealthController } from "../controllers/health.controller.js";
 
 export function registerHealthRoutes(

@@ -1,8 +1,8 @@
 import { SignJWT } from "jose";
 import request from "supertest";
 import { beforeAll, describe, expect, it } from "vitest";
-import app from "../../../app.js";
-import config from "../../../utils/config.js";
+import app from "../../src/app.js";
+import config from "../../src/utils/config.js";
 
 describe("User Routes API (Integration)", () => {
 	let authToken: string;
@@ -40,14 +40,15 @@ describe("User Routes API (Integration)", () => {
 		const payload = {
 			name: "Integration Test User",
 			email: "integration-test@example.com",
+			password: "Password123!",
 		};
 
 		const response =
 			await // biome-ignore lint/suspicious/noExplicitAny: Express 5 + supertest type mismatch
-				request(app as any)
-					.post("/users")
-					.set("Authorization", authToken)
-					.send(payload);
+			request(app as any)
+				.post("/users")
+				.set("Authorization", authToken)
+				.send(payload);
 
 		expect(response.status).toBe(201);
 		expect(response.body.success).toBe(true);
@@ -59,9 +60,10 @@ describe("User Routes API (Integration)", () => {
 		const payload = {
 			name: "Duplicate User",
 			email: "duplicate@example.com",
+			password: "Password123!",
 		};
 
-		// 1. Create the user once
+		// biome-ignore lint/suspicious/noExplicitAny: Express 5 + supertest type mismatch
 		await request(app as any)
 			.post("/users")
 			.set("Authorization", authToken)
@@ -70,10 +72,10 @@ describe("User Routes API (Integration)", () => {
 		// 2. Attempt to create again
 		const response =
 			await // biome-ignore lint/suspicious/noExplicitAny: Express 5 + supertest type mismatch
-				request(app as any)
-					.post("/users")
-					.set("Authorization", authToken)
-					.send(payload);
+			request(app as any)
+				.post("/users")
+				.set("Authorization", authToken)
+				.send(payload);
 
 		expect(response.status).toBe(400);
 		expect(response.body.success).toBe(false);
@@ -84,18 +86,22 @@ describe("User Routes API (Integration)", () => {
 		// Create a user first to delete it
 		const createRes =
 			await // biome-ignore lint/suspicious/noExplicitAny: Express 5 + supertest type mismatch
-				request(app as any)
-					.post("/users")
-					.set("Authorization", authToken)
-					.send({ name: "To Delete", email: "delete-me@example.com" });
+			request(app as any)
+				.post("/users")
+				.set("Authorization", authToken)
+				.send({
+					name: "To Delete",
+					email: "delete-me@example.com",
+					password: "Password123!",
+				});
 
 		const userId = createRes.body.data.id;
 
 		const response =
 			await // biome-ignore lint/suspicious/noExplicitAny: Express 5 + supertest type mismatch
-				request(app as any)
-					.delete(`/users/${userId}`)
-					.set("Authorization", authToken);
+			request(app as any)
+				.delete(`/users/${userId}`)
+				.set("Authorization", authToken);
 
 		expect(response.status).toBe(204);
 	});

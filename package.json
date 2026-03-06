@@ -4,12 +4,18 @@
 	"description": "A reference architecture for building maintainable, enterprise-grade Express.js services in Node.js",
 	"main": "dist/server.js",
 	"scripts": {
-		"test": "vitest",
+		"test": "vitest run",
+		"test:unit": "vitest run tests/unit",
+		"test:e2e": "vitest run tests/e2e",
+		"test:watch": "vitest",
 		"dev": "tsx watch --env-file=.env src/server.ts",
 		"build": "tsc",
 		"start": "node --env-file=.env dist/server.js",
-		"lint": "biome check ./src",
-		"format": "biome format --write ./src"
+		"lint": "biome check ./src ./tests",
+		"format": "biome format --write ./src ./tests"
+	},
+	"engines": {
+		"node": ">=20"
 	},
 	"keywords": [],
 	"author": "Hugh Summerhays",

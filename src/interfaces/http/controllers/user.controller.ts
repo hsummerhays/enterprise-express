@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
 import type { CreateUserUseCase } from "../../../application/use-cases/users/CreateUser.js";
+import type { DeleteUserUseCase } from "../../../application/use-cases/users/DeleteUser.js";
 import type { GetAllUsersUseCase } from "../../../application/use-cases/users/GetAllUsers.js";
 import type { GetUserByIdUseCase } from "../../../application/use-cases/users/GetUserById.js";
-import type { DeleteUserUseCase } from "../../../application/use-cases/users/DeleteUser.js";
 import { BaseController } from "./base.controller.js";
 
 export class UserController extends BaseController {

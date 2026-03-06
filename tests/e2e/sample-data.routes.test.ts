@@ -1,8 +1,8 @@
 import { SignJWT } from "jose";
 import request from "supertest";
 import { beforeAll, describe, expect, it } from "vitest";
-import app from "../../../app.js";
-import config from "../../../utils/config.js";
+import app from "../../src/app.js";
+import config from "../../src/utils/config.js";
 
 describe("Sample Data Routes API (Integration)", () => {
 	let authToken: string;
@@ -28,10 +28,10 @@ describe("Sample Data Routes API (Integration)", () => {
 		const payload = { title: "Test new task", completed: false };
 		const response =
 			await // biome-ignore lint/suspicious/noExplicitAny: Express 5 + supertest type mismatch
-				request(app as any)
-					.post("/sample-data")
-					.set("Authorization", authToken)
-					.send(payload);
+			request(app as any)
+				.post("/sample-data")
+				.set("Authorization", authToken)
+				.send(payload);
 
 		expect(response.status).toBe(201);
 		expect(response.body.success).toBe(true);
@@ -42,10 +42,10 @@ describe("Sample Data Routes API (Integration)", () => {
 		const payload = { completed: true }; // Missing required title
 		const response =
 			await // biome-ignore lint/suspicious/noExplicitAny: Express 5 + supertest type mismatch
-				request(app as any)
-					.post("/sample-data")
-					.set("Authorization", authToken)
-					.send(payload);
+			request(app as any)
+				.post("/sample-data")
+				.set("Authorization", authToken)
+				.send(payload);
 
 		expect(response.status).toBe(400);
 		expect(response.body.success).toBe(false);
@@ -55,18 +55,18 @@ describe("Sample Data Routes API (Integration)", () => {
 	it("DELETE /sample-data/:id should remove an item and return 204", async () => {
 		const response =
 			await // biome-ignore lint/suspicious/noExplicitAny: Express 5 + supertest type mismatch
-				request(app as any)
-					.delete("/sample-data/1")
-					.set("Authorization", authToken);
+			request(app as any)
+				.delete("/sample-data/1")
+				.set("Authorization", authToken);
 		expect(response.status).toBe(204);
 	});
 
 	it("DELETE /sample-data/:id should return 404 for a non-existent item", async () => {
 		const response =
 			await // biome-ignore lint/suspicious/noExplicitAny: Express 5 + supertest type mismatch
-				request(app as any)
-					.delete("/sample-data/9999")
-					.set("Authorization", authToken);
+			request(app as any)
+				.delete("/sample-data/9999")
+				.set("Authorization", authToken);
 		expect(response.status).toBe(404);
 		expect(response.body.success).toBe(false);
 		expect(response.body.message).toBe("Sample Data not found");

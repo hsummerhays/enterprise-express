@@ -6,13 +6,13 @@ import express, {
 	type Response,
 } from "express";
 import helmet from "helmet";
+import { setupRoutes } from "./bootstrap/routes.js";
+import { DomainError, NotFoundError } from "./domain/errors/DomainError.js";
 import { requestLogger } from "./interfaces/http/middleware/log.middleware.js";
 import { globalLimiter } from "./interfaces/http/middleware/rate-limit.middleware.js";
 import { requestId } from "./interfaces/http/middleware/request-id.middleware.js";
-import { setupRoutes } from "./bootstrap/routes.js";
 import ApiResponse from "./utils/api-response.js";
 import config from "./utils/config.js";
-import { AppError } from "./utils/errors.js";
 import logger from "./utils/logger.js";
 import { swaggerSpec } from "./utils/swagger.js";
 
@@ -53,12 +53,12 @@ app.get("/", (_req: Request, res: Response) => {
 
 // --- 404 Handler ---
 app.use((req: Request, _res: Response, next: NextFunction) => {
-	next(new AppError(`The route ${req.originalUrl} does not exist.`, 404));
+	next(new NotFoundError(`The route ${req.originalUrl}`));
 });
 
 // --- Global Error Handler ---
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-	if (err instanceof AppError) {
+	if (err instanceof DomainError) {
 		return res
 			.status(err.statusCode)
 			.json(ApiResponse.error(err.message, err.statusCode));

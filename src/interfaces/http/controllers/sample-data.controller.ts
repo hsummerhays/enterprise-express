@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
-import type { GetAllSampleDataUseCase } from "../../../application/use-cases/sample-data/GetAllSampleData.js";
-import type { GetSampleDataByIdUseCase } from "../../../application/use-cases/sample-data/GetSampleDataById.js";
 import type { CreateSampleDataUseCase } from "../../../application/use-cases/sample-data/CreateSampleData.js";
 import type { DeleteSampleDataUseCase } from "../../../application/use-cases/sample-data/DeleteSampleData.js";
+import type { GetAllSampleDataUseCase } from "../../../application/use-cases/sample-data/GetAllSampleData.js";
+import type { GetSampleDataByIdUseCase } from "../../../application/use-cases/sample-data/GetSampleDataById.js";
 import { BaseController } from "./base.controller.js";
 
 export class SampleDataController extends BaseController {

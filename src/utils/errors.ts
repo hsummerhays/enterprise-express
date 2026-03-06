@@ -1,28 +1,17 @@
-/**
- * Structured error classes for consistent API error handling.
- */
+import { DomainError } from "../domain/errors/DomainError.js";
 
-export class AppError extends Error {
-	public readonly statusCode: number;
+export { DomainError };
+
+/**
+ * AppError extends DomainError with an isOperational flag.
+ * isOperational = true  → expected error (e.g. validation, not found)
+ * isOperational = false → programmer error or unexpected failure
+ */
+export class AppError extends DomainError {
 	public readonly isOperational: boolean;
 
 	constructor(message: string, statusCode: number, isOperational = true) {
-		super(message);
-		this.statusCode = statusCode;
+		super(message, statusCode);
 		this.isOperational = isOperational;
-		Object.setPrototypeOf(this, new.target.prototype);
 	}
 }
-
-export class UnauthorizedError extends AppError {
-	constructor(message = "Authentication required") {
-		super(message, 401);
-	}
-}
-
-export class ForbiddenError extends AppError {
-	constructor(message = "Access denied") {
-		super(message, 403);
-	}
-}
-

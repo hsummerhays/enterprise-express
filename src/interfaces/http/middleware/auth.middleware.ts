@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 import { jwtVerify } from "jose";
+import { UnauthorizedError } from "../../../domain/errors/DomainError.js";
 import type { JwtPayload } from "../../../types/auth.types.js";
 import config from "../../../utils/config.js";
-import { UnauthorizedError } from "../../../domain/errors/index.js";
 
 export interface AuthenticatedRequest extends Request {
 	user?: JwtPayload;

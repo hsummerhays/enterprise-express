@@ -81,8 +81,8 @@ flowchart TD
 |---|---|---|
 | Interfaces | HTTP entry point — routing, middleware, validation, OpenAPI | `controllers/`, `routes/`, `middleware/`, `validators/` |
 | Application | Business workflows — use cases, orchestration, ports | `use-cases/`, `ports/`, `dto/`, `mappers/` |
-| Domain | Core rules — entities, repository contracts, value objects | `entities/`, `repositories/`, `value-objects/` |
-| Infrastructure | Technical details — database, security, logging adapters | `repositories/`, `security/`, `logging/`, `database/` |
+| Domain | Core rules — entities, repository contracts, error hierarchy | `entities/`, `repositories/`, `errors/` |
+| Infrastructure | Technical details — database, security, logging, persistence adapters | `repositories/`, `security/`, `logging/`, `database/`, `persistence/` |
 
 The dependency rule holds at this level: Interfaces and Infrastructure both depend on Application. Application depends on Domain. Domain depends on nothing.
 
@@ -117,8 +117,8 @@ flowchart TD
 
     subgraph Infrastructure["Infrastructure Layer"]
         RepoImpl["SqliteUserRepository"]
-        HasherImpl["Argon2PasswordHasher"]
-        TokenImpl["JoseTokenService"]
+        HasherImpl["Argon2PasswordHasherAdapter"]
+        TokenImpl["JoseTokenServiceAdapter"]
         DB[("SQLite Database")]
     end
 

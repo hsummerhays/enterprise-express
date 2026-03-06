@@ -25,7 +25,7 @@ Environment variables are loaded via the `--env-file` flag at startup rather tha
 5. **API docs**: Scalar UI served at `/api-docs`
 6. **Error handling**: 404 handler followed by a global error handler
 
-The global error handler distinguishes between operational `AppError` subclasses (returned with their own `statusCode`) and unexpected errors (logged with full stack, but only exposed in development).
+The global error handler distinguishes between operational `DomainError` subclasses (returned with their own `statusCode`) and unexpected errors (logged with full stack, but only exposed in development).
 
 ## 3. Clean Architecture
 
@@ -59,21 +59,21 @@ src/
 │
 ├── domain/                           ← Core business rules (no external dependencies)
 │   ├── entities/
-│   │   ├── User.ts
+│   │   ├── User.ts                   ← passwordHash private; getPasswordHash() accessor
 │   │   └── SampleData.ts
-│   ├── repositories/                 ← Repository interfaces (contracts, not implementations)
+│   ├── repositories/                 ← Repository interfaces + SaveUserData type
 │   │   ├── UserRepository.ts
 │   │   └── SampleDataRepository.ts
-│   ├── value-objects/
-│   │   └── Email.ts
+│   ├── value-objects/                ← Custom domain value types
 │   └── errors/
-│       ├── index.ts                  ← NotFoundError, ValidationError, UnauthorizedError, etc.
-│       └── DomainError.ts            ← UserAlreadyExistsError, etc.
+│       └── DomainError.ts            ← Standalone base + NotFoundError, ValidationError,
+│                                         UnauthorizedError, UserAlreadyExistsError, etc.
 │
 ├── application/                      ← Use cases and orchestration (no framework dependencies)
 │   ├── dto/                          ← Plain TypeScript types for data flowing between layers
 │   ├── mappers/                      ← Converts domain entities to response DTOs
-│   ├── ports/                        ← Interfaces for infrastructure services (PasswordHasher, TokenService)
+│   ├── ports/                        ← PasswordHasherPort, TokenServicePort, DatabaseHealthPort,
+│   │                                     UnitOfWorkPort, LoggerPort
 │   └── use-cases/
 │       ├── auth/
 │       ├── users/
@@ -82,8 +82,11 @@ src/
 │
 ├── infrastructure/                   ← External systems (implements domain & application interfaces)
 │   ├── database/
-│   ├── repositories/                 ← SQLite implementations of domain repository interfaces
-│   └── security/                     ← Argon2PasswordHasher, JoseTokenService
+│   ├── logging/                      ← PinoLoggerAdapter
+│   ├── persistence/                  ← SqliteDatabaseHealthAdapter, SqliteUnitOfWorkAdapter,
+│   │                                     InMemory variants
+│   ├── repositories/                 ← SQLite and in-memory implementations
+│   └── security/                     ← Argon2PasswordHasherAdapter, JoseTokenServiceAdapter
 │
 ├── interfaces/
 │   └── http/                         ← Express-specific code isolated here
@@ -251,16 +254,16 @@ Using the class constructor as the DI token (`container.register(UserController,
 The application layer defines **ports** — interfaces for infrastructure services it depends on but does not own:
 
 ```typescript
-// application/ports/PasswordHasher.ts
+// application/ports/PasswordHasherPort.ts
 export interface PasswordHasher {
     hash(password: string): Promise<string>;
     verify(password: string, hash: string): Promise<boolean>;
 }
 ```
 
-The `LoginUseCase` depends on `PasswordHasher` (the port), not on `Argon2PasswordHasher` (the adapter). This means the use case can be unit-tested with a mock hasher, and the hashing library can be swapped without changing any application code.
+The `LoginUseCase` and `CreateUserUseCase` depend on `PasswordHasher` (the port), not on `Argon2PasswordHasherAdapter` (the adapter). This means use cases can be unit-tested with a mock hasher, and the hashing library can be swapped without changing any application code.
 
-The same pattern applies to `TokenService` — the application defines the interface, and `JoseTokenService` in infrastructure implements it.
+The same pattern applies to all ports: `TokenServicePort`, `DatabaseHealthPort`, `UnitOfWorkPort`, and `LoggerPort` — the application defines the interface, infrastructure provides the implementation, and the container wires them together.
 
 ## 7. BaseController (`src/interfaces/http/controllers/base.controller.ts`)
 
@@ -274,33 +277,37 @@ No controller ever calls `res.status().json()` directly. Response formatting is 
 
 ## 8. Structured Error Handling
 
-The project uses typed error classes rather than raw `Error` objects. Domain errors live in `src/domain/errors/`:
+The project uses typed error classes rather than raw `Error` objects.
 
-- **`DomainError`** — Base domain error extending `AppError`
-- **`NotFoundError`** — 404 errors (`"Sample Data not found"`)
-- **`ValidationError`** — 400 errors with structured details
+**`src/domain/errors/DomainError.ts`** is the canonical error file and is standalone — it has no external imports. All domain and application errors are defined here:
+
+- **`DomainError`** — Standalone base class with a `statusCode` field. Extends `Error` directly, not `AppError`.
+- **`NotFoundError`** — 404 (`"Sample Data not found"`)
+- **`ValidationError`** — 400 with structured `details`
 - **`UnauthorizedError`** — 401 authentication failures
 - **`ForbiddenError`** — 403 authorization failures
-- **`UserAlreadyExistsError`** — Domain-specific conflict error
+- **`UserAlreadyExistsError`** — Domain-specific 400 conflict error
 
-Transport-level errors (`AppError`, `UnauthorizedError`) live in `src/utils/errors.ts` and are used by the auth middleware and global error handler.
+**`src/utils/errors.ts`** provides `AppError`, which extends `DomainError` and adds an `isOperational` flag for distinguishing expected errors from programmer errors. The global error handler in `app.ts` catches all `DomainError` instances (which includes `AppError` and every subclass) and formats them with their `statusCode`.
 
-All errors bubble up to the global error handler in `app.ts`, which formats every error response consistently. Use cases simply `throw new NotFoundError("Sample Data")` and the framework layer handles the rest.
+All errors bubble up to the global error handler. Use cases simply `throw new NotFoundError("Sample Data")` and the framework layer handles the rest.
 
 ## 9. Testing
 
 The project uses `Vitest` as the test runner and `Supertest` for integration testing.
 
-**Unit tests** (`src/application/use-cases/**/*.test.ts`) test use cases in complete isolation using `vi.fn()` mocks for all dependencies. Since use cases depend only on interfaces (ports and repository contracts), no database or HTTP server is needed:
+**Unit tests** (`tests/unit/application/`) test use cases in complete isolation using `vi.fn()` mocks for all port interfaces. No database, no HTTP server:
 
 ```typescript
-// Login.test.ts
+// tests/unit/application/Login.test.ts
 userRepository = { findByEmail: vi.fn(), /* ... */ } as unknown as UserRepository;
 passwordHasher = { hash: vi.fn(), verify: vi.fn() } as unknown as PasswordHasher;
 loginUseCase = new LoginUseCase(userRepository, passwordHasher, tokenService);
 ```
 
-**Integration tests** (`src/interfaces/http/routes/**/*.test.ts`) spin up the real Express app via Supertest and verify end-to-end API correctness including middleware, validation, authentication, and error responses.
+**E2E tests** (`tests/e2e/`) spin up the real Express app via Supertest and verify end-to-end API correctness including middleware, validation, authentication, and error responses.
+
+Run them independently with `npm run test:unit` or `npm run test:e2e`.
 
 Test-specific environment variables are provided via `vitest.config.ts`.
 
@@ -338,7 +345,7 @@ The project uses **Pino** for high-performance structured JSON logging.
 - **Auth limiter**: 5 requests per 15 minutes per IP, applied specifically to `POST /auth/login` to prevent brute-force attacks.
 
 ### CORS
-- Configurable via the `CORS_ORIGIN` environment variable. Defaults to `*` for development.
+- Configurable via the `CORS_ORIGIN` environment variable. Defaults to `http://localhost:3000`. Set to your actual domain in production.
 
 ### Body Size Limit
 - `express.json()` and `express.urlencoded()` capped at `16kb` to prevent large-payload denial-of-service attacks.
