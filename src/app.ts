@@ -79,6 +79,7 @@ app.use(
 app.get("/", (_req: Request, res: Response) => {
 	res.status(200).json({
 
+
 		message: "Enterprise Express Full is live!",
 		timestamp: new Date().toISOString(),
 	});

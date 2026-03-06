@@ -1,11 +1,13 @@
 # C4 Architecture Model
 
 
+
 The C4 model describes software architecture at four levels of zoom: **System Context**, **Container**, **Component**, and **Code**. This document covers the first three levels for Enterprise Express Full.
 
 ---
 
 ## Level 1: System Context
+
 
 
 Shows where Enterprise Express Full sits within its broader environment and who interacts with it.
@@ -17,6 +19,7 @@ flowchart LR
 
     Gateway["API Gateway
     / Load Balancer"]
+
 
 
     API["Enterprise Express Full
@@ -41,6 +44,7 @@ flowchart LR
 | Client Application | Sends HTTP requests — browser, mobile app, CLI, or another service |
 | API Gateway | Routes and load-balances inbound traffic to the service |
 
+
 | Enterprise Express Full | Handles routing, validation, business logic, and persistence |
 | Database | Stores domain entities (users, sample data) |
 | External APIs | Reached through Infrastructure adapters — email, payments, etc. |
@@ -50,11 +54,13 @@ flowchart LR
 ## Level 2: Container Architecture
 
 
+
 Shows the major runtime components (layers) inside the Enterprise Express Full service.
 
 ```mermaid
 flowchart TD
     Client["Client HTTP Request"]
+
 
 
     subgraph Service["Enterprise Express Full Service"]
@@ -65,7 +71,7 @@ flowchart TD
         Use Cases / Ports / DTOs / Mappers"]
 
         Domain["Domain Layer
-        Entities / Repository Interfaces / Value Objects"]
+        Entities | Value Objects | Domain Interfaces"]
 
         Infrastructure["Infrastructure Layer
         Repository Implementations / Security Adapters / Logging / Database"]

@@ -64,6 +64,6 @@ source ~/.bashrc
 Then open the project directly:
 
 ```bash
-cd ~/enterprise-express-full
+cd ~/enterprise-express
 agy .
 ```
