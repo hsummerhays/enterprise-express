@@ -11,7 +11,7 @@ All configuration is read from environment variables, validated and typed on sta
 ```typescript
 // src/utils/config.ts
 const rawConfig = {
-    app: { port: process.env.PORT, env: process.env.NODE_ENV },
+    app: { port: process.env.PORT, env: process.env.NODE_ENV, corsOrigin: process.env.CORS_ORIGIN },
     logging: { level: process.env.LOG_LEVEL },
     auth: { jwtSecret: process.env.JWT_SECRET },
 };
@@ -38,7 +38,8 @@ tsx watch --env-file=.env src/server.ts
 | --- | --- | --- | --- |
 | `PORT` | No | `3000` | Server port |
 | `NODE_ENV` | No | `development` | Environment name |
-| `LOG_LEVEL` | No | `info` | Winston log level (`debug`, `info`, `warn`, `error`) |
+| `LOG_LEVEL` | No | `info` | Pino log level (`debug`, `info`, `warn`, `error`) |
+| `CORS_ORIGIN` | No | `*` | Allowed CORS origin. Set to your frontend URL in production (e.g., `https://yourdomain.com`) |
 | `JWT_SECRET` | **Yes** | — | Secret key for signing JWTs |
 
 ---
@@ -50,9 +51,10 @@ Import the validated configuration object from `src/utils/config.ts`:
 ```typescript
 import config from './utils/config.js';
 
-const port = config.app.port;     // number (auto-coerced from string)
-const env = config.app.env;       // string
-const level = config.logging.level; // 'debug' | 'info' | 'warn' | 'error'
+const port = config.app.port;           // number (auto-coerced from string)
+const env = config.app.env;             // string
+const corsOrigin = config.app.corsOrigin; // string (defaults to '*')
+const level = config.logging.level;     // 'debug' | 'info' | 'warn' | 'error'
 ```
 
 Full TypeScript autocomplete and type safety is provided via `z.infer`.

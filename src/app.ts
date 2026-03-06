@@ -22,7 +22,7 @@ const app = express();
 
 // --- Security middleware (first) ---
 app.use(helmet());
-app.use(cors());
+app.use(cors({ origin: config.app.corsOrigin }));
 app.use(globalLimiter);
 
 // --- Request lifecycle ---
@@ -30,8 +30,8 @@ app.use(requestId);
 app.use(requestLogger);
 
 // --- Body parsing ---
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 
 // --- Routes ---
 app.use("/health", healthRoutes);
@@ -69,7 +69,7 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 	}
 
 	// Unexpected errors — log full stack, but don't expose to client
-	logger.error("Unhandled error:", err);
+	logger.error({ err }, "Unhandled error");
 
 	const details = config.app.env === "development" ? err.stack : null;
 	return res

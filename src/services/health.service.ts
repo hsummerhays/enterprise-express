@@ -1,3 +1,5 @@
+import config from "../utils/config.js";
+
 export interface SystemStatus {
 	status: string;
 	uptime: number;
@@ -13,7 +15,7 @@ export class HealthService {
 			status: "UP",
 			uptime: process.uptime(),
 			timestamp: new Date().toISOString(),
-			environment: process.env.NODE_ENV || "development",
+			environment: config.app.env,
 			node_version: process.version,
 			platform: process.platform,
 		};

@@ -9,9 +9,15 @@ export const requestLogger = (
 	const start = Date.now();
 	res.on("finish", () => {
 		const duration = Date.now() - start;
-		logger.info(
-			`${req.method} ${req.originalUrl} - ${res.statusCode} [${duration}ms]`,
-		);
+		const requestId = res.locals.requestId as string | undefined;
+		logger.info({
+			msg: `${req.method} ${req.originalUrl} - ${res.statusCode}`,
+			method: req.method,
+			url: req.originalUrl,
+			statusCode: res.statusCode,
+			durationMs: duration,
+			...(requestId && { requestId }),
+		});
 	});
 	next();
 };

@@ -29,10 +29,20 @@ export abstract class BaseController {
 		details: unknown = null,
 	): Response {
 		if (statusCode >= 500) {
-			logger.error(`[BaseController] Internal Error: ${message}`, details);
+			logger.error(
+				{ err: details },
+				`[BaseController] Internal Error: ${message}`,
+			);
 		}
 		return res
 			.status(statusCode)
 			.json(ApiResponse.error(message, statusCode, details));
+	}
+
+	/**
+	 * Send a 204 No Content response.
+	 */
+	protected handleNoContent(res: Response): Response {
+		return res.status(204).send();
 	}
 }

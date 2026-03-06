@@ -1,30 +1,18 @@
-import winston from "winston";
+import pino from "pino";
 import config from "./config.js";
 
-const logger = winston.createLogger({
+const logger = pino({
 	level: config.logging.level,
-	format: winston.format.combine(
-		winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-		winston.format.errors({ stack: true }),
-		winston.format.splat(),
-		winston.format.json(),
-	),
-	defaultMeta: { service: "express-backend" },
-	transports: [
-		new winston.transports.File({ filename: "logs/combined.log" }),
-		new winston.transports.File({ filename: "logs/error.log", level: "error" }),
-	],
+	...(config.app.env !== "production" && {
+		transport: {
+			target: "pino-pretty",
+			options: {
+				colorize: true,
+				translateTime: "yyyy-mm-dd HH:MM:ss",
+				ignore: "pid,hostname",
+			},
+		},
+	}),
 });
-
-if (config.app.env !== "production") {
-	logger.add(
-		new winston.transports.Console({
-			format: winston.format.combine(
-				winston.format.colorize(),
-				winston.format.simple(),
-			),
-		}),
-	);
-}
 
 export default logger;

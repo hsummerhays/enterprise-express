@@ -48,6 +48,6 @@ export class SampleDataController extends BaseController {
 		if (!success) {
 			return this.handleError(res, "Sample data not found", 404);
 		}
-		return res.status(204).send(); // No Content
+		return this.handleNoContent(res); // No Content
 	};
 }

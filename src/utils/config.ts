@@ -8,6 +8,7 @@ const configSchema = z.object({
 			.transform((v) => Number.parseInt(v, 10))
 			.pipe(z.number().int().nonnegative()),
 		env: z.string().min(1).default("development"),
+		corsOrigin: z.string().default("*"),
 	}),
 	logging: z.object({
 		level: z.enum(["debug", "info", "warn", "error"]).default("info"),
@@ -24,6 +25,7 @@ export const validateConfig = (): Config => {
 		app: {
 			port: process.env.PORT,
 			env: process.env.NODE_ENV,
+			corsOrigin: process.env.CORS_ORIGIN,
 		},
 		logging: {
 			level: process.env.LOG_LEVEL,

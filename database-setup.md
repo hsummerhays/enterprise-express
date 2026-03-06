@@ -1,6 +1,6 @@
 # 🗄️ Database Connection Guidance
 
-This guide provides instructions and boilerplate for connecting your TypeScript Express backend to **MongoDB** and **PostgreSQL**.
+This guide provides instructions and boilerplate for connecting your TypeScript Express backend to **MongoDB** and **PostgreSQL**. Both integrate with the project's strict layered architecture — database queries belong in the **Repository** layer.
 
 ---
 
@@ -29,7 +29,7 @@ export const connectMongo = async (): Promise<void> => {
         await mongoose.connect(uri);
         logger.info('🚀 Successfully connected to MongoDB');
     } catch (error) {
-        logger.error('❌ MongoDB connection error:', error);
+        logger.error({ err: error }, '❌ MongoDB connection error');
         process.exit(1);
     }
 };
@@ -66,7 +66,7 @@ pool.on('connect', () => {
 });
 
 pool.on('error', (err: Error) => {
-    logger.error('❌ Unexpected error on idle PostgreSQL client', err);
+    logger.error({ err }, '❌ Unexpected error on idle PostgreSQL client');
     process.exit(-1);
 });
 ```
@@ -99,3 +99,22 @@ await connectMongo();
 ```
 
 To ensure connections are closed correctly during graceful shutdown, ensure `disconnectDatabase()` is called in your shutdown logic.
+
+---
+
+## 5. Repository Integration
+
+When a database is connected, update your Repository classes to use it instead of in-memory arrays. The rest of the architecture (Routes → Controllers → Services → Repositories) stays the same:
+
+```typescript
+// src/repositories/sample-data.repository.ts
+export class SampleDataRepository {
+    async findAll(): Promise<SampleData[]> {
+        // Replace in-memory logic with database query
+        const result = await dbQuery('SELECT * FROM sample_data');
+        return result.rows;
+    }
+}
+```
+
+Only the Repository layer changes — Services, Controllers, and Routes remain untouched.

@@ -11,17 +11,19 @@ A modern Node.js backend environment optimized for Windows 11 WSL2 and Google An
 - **Auth**: [jose](https://github.com/panva/jose) (JWT) + [Argon2](https://github.com/ranieri/node-argon2) (password hashing)
 - **Database**: In-memory storage (Extensible to MongoDB/PostgreSQL).
 - **Documentation**: [Zod-to-OpenAPI](https://github.com/asteasolutions/zod-to-openapi) + [Scalar](https://github.com/scalar/scalar)
-- **Logging**: [Winston](https://github.com/winstonjs/winston)
+- **Logging**: [Pino](https://github.com/pinojs/pino) (structured JSON, ~5x faster than Winston)
 - **Testing**: [Vitest](https://vitest.dev/) & [Supertest](https://github.com/ladjs/supertest)
 
 ## 🛠️ Performance & Security
 
 - **Graceful Shutdown**: Ready for production environments.
-- **Rate Limiting**: [express-rate-limit](https://www.npmjs.com/package/express-rate-limit) to mitigate brute-force.
+- **Rate Limiting**: Global limiter (100 req/15 min) + strict auth limiter (5 req/15 min) via [express-rate-limit](https://www.npmjs.com/package/express-rate-limit).
 - **Security Headers**: [Helmet](https://helmetjs.github.io/) to secure your Express app.
-- **Request Tracing**: Every response includes an `X-Request-Id` header for distributed traceability.
-- **Structured Errors**: Typed error classes (`AppError`, `NotFoundError`, `ValidationError`) for consistent error handling.
-- **Standardized Responses**: Unified JSON API responses via the `ApiResponse` helper.
+- **CORS**: Configurable allowed origins via the `CORS_ORIGIN` environment variable (defaults to `*` for development).
+- **Body Size Limit**: Request bodies capped at `16kb` to prevent large payload DoS.
+- **Request Tracing**: Every response includes an `X-Request-Id` header, and all log entries include the `requestId` for full end-to-end traceability.
+- **Structured Errors**: Typed error classes (`AppError`, `NotFoundError`, `ValidationError`, `UnauthorizedError`, `ForbiddenError`) for consistent error handling.
+- **Standardized Responses**: Unified JSON API responses via the `ApiResponse` helper and `BaseController`.
 
 ## 🚀 Rapid Setup
 
@@ -39,17 +41,34 @@ For complete instructions on configuring Windows 11 WSL2 and Google Antigravity 
 
 ## 🏗 Architecture
 
-The project follows an enterprise-style separation of concerns, mirroring patterns found in C# and Java:
+The project follows a strict layered architecture with constructor-based dependency injection:
+
+```
+Routes → Controllers → Services → Repositories
+```
 
 * **`src/app.ts`**: The Application assembly. Configures Express middleware (security → parsing → routes), error handlers, and API docs.
-* **`src/controllers/`**: Thin classes that receive services via constructor injection, orchestrate responses.
-* **`src/middleware/`**: Request logging, Zod validation, JWT authentication, rate limiting, and request ID generation.
-* **`src/routes/`**: Modular route definitions exporting Express routers.
+* **`src/controllers/`**: Extend `BaseController` for standardized responses. Receive services via constructor injection.
+* **`src/middleware/`**: Request logging, Zod validation, JWT authentication (throws `UnauthorizedError`), rate limiting, and request ID generation.
+* **`src/repositories/`**: Data access layer. Encapsulates all storage operations (in-memory, database).
+* **`src/routes/`**: Modular route definitions. Orchestrate DI by instantiating Repositories → Services → Controllers.
 * **`src/schemas/`**: Zod validation schemas registered with the OpenAPI registry.
-* **`src/services/`**: Class-based business logic and data access handlers.
-* **`src/utils/`**: Shared utilities — logger, config, errors, database templates, and the `ApiResponse` helper.
+* **`src/services/`**: Class-based business logic. Framework-agnostic, receives repositories via constructor.
+* **`src/utils/`**: Shared utilities — logger (Pino), config, errors, database templates, and the `ApiResponse` helper.
 * **`src/types/`**: TypeScript type declarations — `JwtPayload`, Express augmentations.
 * **`GET /api-docs`**: The live interactive Scalar API documentation endpoint.
+
+### 🌐 CORS Configuration
+
+By default, `CORS_ORIGIN` is set to `*` (allow all origins) for development convenience. **In production**, set this to your frontend domain(s):
+
+```env
+# Single origin
+CORS_ORIGIN=https://yourdomain.com
+
+# For development (default)
+CORS_ORIGIN=*
+```
  
 ## 📚 Documentation & Resources
  
