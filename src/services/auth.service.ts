@@ -1,42 +1,37 @@
 import * as argon2 from "argon2";
 import { SignJWT } from "jose";
+import type { AuthRepository } from "../repositories/auth.repository.js";
 import type { JwtPayload } from "../types/auth.types.js";
 import config from "../utils/config.js";
 
 export class AuthService {
 	private readonly jwtSecret: Uint8Array;
+	private readonly authRepository: AuthRepository;
 
-	constructor() {
+	constructor(authRepository: AuthRepository) {
 		this.jwtSecret = new TextEncoder().encode(config.auth.jwtSecret);
+		this.authRepository = authRepository;
 	}
 
 	async login(
 		email: string,
 		password: string,
 	): Promise<{ user: JwtPayload; token: string } | null> {
-		// Mock DB record with an argon2 hashed password
-		// This is a hash for the password: 'P@ssword123'
-		const mockDbUser = {
-			id: 1,
-			email: "admin@example.com",
-			role: "admin",
-			passwordHash:
-				"$argon2id$v=19$m=65536,t=3,p=4$/0iA+F0yh+ie1t69J4hXlw$ukjP6aYW29K1c2TMXAp/qty7R680rfuC+WyOQMgLjdE",
-		};
+		const dbUser = await this.authRepository.findUserByEmail(email);
 
-		if (email !== mockDbUser.email) {
+		if (!dbUser) {
 			return null;
 		}
 
-		const isValid = await argon2.verify(mockDbUser.passwordHash, password);
+		const isValid = await argon2.verify(dbUser.passwordHash, password);
 		if (!isValid) {
 			return null;
 		}
 
 		const user: JwtPayload = {
-			id: mockDbUser.id,
-			email: mockDbUser.email,
-			role: mockDbUser.role,
+			id: dbUser.id,
+			email: dbUser.email,
+			role: dbUser.role,
 		};
 
 		const token = await new SignJWT({ ...user })

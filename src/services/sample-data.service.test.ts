@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { SampleDataRepository } from "../repositories/sample-data.repository.js";
 import { SampleDataService } from "./sample-data.service.js";
 
 describe("SampleDataService", () => {
-	const service = new SampleDataService();
+	const repository = new SampleDataRepository();
+	const service = new SampleDataService(repository);
 
 	it("should return all sample data items", async () => {
 		const data = await service.getAll();

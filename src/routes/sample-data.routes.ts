@@ -2,13 +2,15 @@ import { Router } from "express";
 import { SampleDataController } from "../controllers/sample-data.controller.js";
 import { authenticate } from "../middleware/auth.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
+import { SampleDataRepository } from "../repositories/sample-data.repository.js";
 import { createSampleDataSchema } from "../schemas/sample-data.schema.js";
 import { SampleDataService } from "../services/sample-data.service.js";
 
 const router = Router();
 
 // Manual Dependency Injection at the route level
-const sampleDataService = new SampleDataService();
+const sampleDataRepository = new SampleDataRepository();
+const sampleDataService = new SampleDataService(sampleDataRepository);
 const sampleDataController = new SampleDataController(sampleDataService);
 
 router.get("/", sampleDataController.getAll);
