@@ -1,4 +1,5 @@
-# Enterprise Express
+
+# Enterprise Express Full
 
 Enterprise-grade TypeScript backend architecture for Node.js and Express
 implementing Clean Architecture and production-ready service patterns.
@@ -41,7 +42,8 @@ implementing Clean Architecture and production-ready service patterns.
 
 ## Project Status
 
-Enterprise Express is a **reference architecture and starter template** for building enterprise-grade Express services using TypeScript and Clean Architecture principles.
+
+Enterprise Express Full is a **reference architecture and starter template** for building enterprise-grade Express services using TypeScript and Clean Architecture principles.
 
 The goal is to demonstrate:
 
@@ -58,7 +60,8 @@ This project is intentionally minimal but structured to grow.
 
 ### Who This Project Is For
 
-Enterprise Express is designed for developers who want more structure than a typical Express application provides.
+
+Enterprise Express Full is designed for developers who want more structure than a typical Express application provides.
 
 This project may be useful if you:
 
@@ -74,7 +77,8 @@ It is **not intended to replace frameworks**, but to provide a **clean architect
 
 Many Express applications begin simple but become difficult to maintain as they grow.
 
-Enterprise Express introduces architectural principles commonly found in mature backend frameworks such as:
+
+Enterprise Express Full introduces architectural principles commonly found in mature backend frameworks such as:
 
 - ASP.NET Core
 - Spring Boot
@@ -83,16 +87,18 @@ By applying these patterns to Express, this project demonstrates how Node.js ser
 
 ### Comparison
 
-Enterprise Express focuses on **architecture and maintainability** while staying close to the core Express ecosystem.
+
+Enterprise Express Full focuses on **architecture and maintainability** while staying close to the core Express ecosystem.
 
 | Project | Focus | Architecture Style |
 |--------|------|----------------|
 | Express | Minimal web framework | Unopinionated |
 | Fastify | High-performance web server | Plugin architecture |
 | NestJS | Full framework | Angular-style modules |
-| **Enterprise Express** | Reference architecture | Clean Architecture |
 
-Enterprise Express intentionally remains **lightweight and framework-agnostic**, providing architectural structure without introducing additional runtime abstractions.
+| **Enterprise Express Full** | Reference architecture | Clean Architecture |
+
+Enterprise Express Full intentionally remains **lightweight and framework-agnostic**, providing architectural structure without introducing additional runtime abstractions.
 
 ### Key Features
 
@@ -130,13 +136,15 @@ In many Express.js applications, a single route handler or controller file often
 
 As the application grows, this coupling makes it impossible to change the database without breaking the routes, or to test business logic without spinning up a full HTTP server.
 
-**Enterprise Express** solves this by strictly separating these concerns into specialized layers, ensuring that your core business rules don't know—and don't care—whether they are being called by an Express route, a CLI command, or a background worker.
+
+**Enterprise Express Full** solves this by strictly separating these concerns into specialized layers, ensuring that your core business rules don't know—and don't care—whether they are being called by an Express route, a CLI command, or a background worker.
 
 ---
 
 ## 3. Architecture Overview
 
-Enterprise Express follows **Clean Architecture** principles as described by Robert C. Martin.  
+
+Enterprise Express Full follows **Clean Architecture** principles as described by Robert C. Martin.  
 The goal is to keep business logic independent of frameworks, databases, and delivery mechanisms.
 
 Core rules:
@@ -431,7 +439,8 @@ This structure keeps business rules isolated, infrastructure replaceable, and th
 
 ## 9. Layer-First vs Feature-First Organization
 
-Enterprise Express uses a **layer-first** structure — code is organized by architectural role (domain, application, interfaces, infrastructure). This is a deliberate choice for a reference architecture, because the layers themselves are the teaching subject.
+
+Enterprise Express Full uses a **layer-first** structure — code is organized by architectural role (domain, application, interfaces, infrastructure). This is a deliberate choice for a reference architecture, because the layers themselves are the teaching subject.
 
 ### Layer-First (this project)
 
@@ -543,7 +552,8 @@ without changing the core business logic.
 
 ## 11. Creating a New Feature
 
-Enterprise Express organizes code by architectural layer. Every new feature follows the same repeatable pattern regardless of domain complexity.
+
+Enterprise Express Full organizes code by architectural layer. Every new feature follows the same repeatable pattern regardless of domain complexity.
 
 ### Implementation Flow
 
@@ -661,7 +671,8 @@ This is the **only** file in the application that imports from `infrastructure/`
 
 ## 13. Replaceable Infrastructure
 
-One of the core claims of Clean Architecture is that infrastructure is a swappable detail. Enterprise Express demonstrates this concretely with two implementations of every repository interface.
+
+One of the core claims of Clean Architecture is that infrastructure is a swappable detail. Enterprise Express Full demonstrates this concretely with two implementations of every repository interface.
 
 ### Repository Implementations
 
@@ -798,17 +809,17 @@ Detailed architecture diagrams are maintained in the `docs/` folder:
 
 ### C4 Model Overview
 
-The [C4 model](docs/c4-model.md) describes Enterprise Express at three levels of zoom:
 
-- **Level 1 — System Context:** Where the service lives in the broader ecosystem (clients, gateway, database, external APIs)
-- **Level 2 — Container Architecture:** How the four layers are structured at runtime and how they depend on each other
-- **Level 3 — Component Architecture:** How a request flows through controllers, use cases, port interfaces, and infrastructure adapters
+*   **System Context** (Level 1): Shows where **Enterprise Express Full** fits into the world.
+*   **Container Architecture** (Level 2): Explores the internal layers (**Inland Dependencies**) within the microservice.
+*   **Component Architecture** (Level 3): Zooms into how a specific request flows through code-level components.
 
 ---
 
 ## 16. Testing Strategy
 
-Enterprise Express uses **Vitest** for all test levels and **Supertest** for HTTP assertions. Tests are organized in a dedicated `tests/` directory that mirrors the architectural layers — the structure itself communicates that each layer is independently testable.
+
+Enterprise Express Full uses **Vitest** for all test levels and **Supertest** for HTTP assertions. Tests are organized in a dedicated `tests/` directory that mirrors the architectural layers — the structure itself communicates that each layer is independently testable.
 
 ### Test Layout
 

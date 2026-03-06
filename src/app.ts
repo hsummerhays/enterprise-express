@@ -19,7 +19,35 @@ import { swaggerSpec } from "./utils/swagger.js";
 const app = express();
 
 // --- Security middleware (first) ---
-app.use(helmet());
+app.use(
+	helmet({
+		contentSecurityPolicy: {
+			directives: {
+				...helmet.contentSecurityPolicy.getDefaultDirectives(),
+				"script-src": ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+				"style-src": [
+					"'self'",
+					"https://cdn.jsdelivr.net",
+					"https://fonts.googleapis.com",
+					"'unsafe-inline'",
+				],
+				"img-src": ["'self'", "data:", "https://cdn.jsdelivr.net"],
+				"font-src": [
+					"'self'",
+					"https://fonts.gstatic.com",
+					"https://cdn.jsdelivr.net",
+					"https://fonts.scalar.com",
+				],
+				"connect-src": [
+					"'self'",
+					"https://cdn.jsdelivr.net",
+					"https://proxy.scalar.com",
+					"https://api.scalar.com",
+				],
+			},
+		},
+	}),
+);
 app.use(cors({ origin: config.app.corsOrigin }));
 app.use(globalLimiter);
 
@@ -39,14 +67,19 @@ app.use(
 	"/api-docs",
 	apiReference({
 		theme: "deepSpace",
-		spec: { content: swaggerSpec },
+		layout: "modern",
+		content: swaggerSpec,
+		authentication: {
+			preferredSecurityScheme: "bearerAuth",
+		},
 	} as Parameters<typeof apiReference>[0]),
 );
 
 // --- Root ---
 app.get("/", (_req: Request, res: Response) => {
 	res.status(200).json({
-		message: "Enterprise Express is live!",
+
+		message: "Enterprise Express Full is live!",
 		timestamp: new Date().toISOString(),
 	});
 });

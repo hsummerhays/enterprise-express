@@ -1,5 +1,5 @@
 {
-	"name": "enterprise-express",
+	"name": "enterprise-express-full",
 	"version": "1.0.0",
 	"description": "A reference architecture for building maintainable, enterprise-grade Express.js services in Node.js",
 	"main": "dist/server.js",
