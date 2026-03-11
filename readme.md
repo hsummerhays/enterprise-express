@@ -2,8 +2,9 @@
 
 # Enterprise Express Full
 
-Enterprise-grade TypeScript backend architecture for Node.js and Express
-implementing Clean Architecture and production-ready service patterns.
+Enterprise-grade TypeScript architecture for building maintainable Node.js and Express backend services using Clean Architecture.
+
+Inspired by patterns from Spring Boot and ASP.NET Core.
 
 ![Node](https://img.shields.io/badge/node-%3E%3D20-green)
 ![TypeScript](https://img.shields.io/badge/typescript-5.x-blue)
@@ -106,6 +107,10 @@ Enterprise Express Full focuses on **architecture and maintainability** while st
 | **Enterprise Express Full** | Reference architecture | Clean Architecture |
 
 Enterprise Express intentionally remains **lightweight and framework-agnostic**, providing architectural structure without introducing additional runtime abstractions.
+
+For a deeper look at how these patterns compare to other ecosystems, see:
+- [ASP.NET Core (.NET 10) Comparison](docs/dotnet10-microservices-comparison.md)
+- [Spring Boot 4 Comparison](docs/springboot4-microservices-comparison.md)
 
 ### Key Features
 
@@ -452,7 +457,24 @@ RepositoryImpl --> Database
 
 The codebase is organized by architectural layer, with each layer containing only code that belongs to it.
 
+```text
+       HTTP / Express
+             │
+             ▼
+ Interfaces (controllers, DTOs)
+             │
+             ▼
+ Application (services, use cases)
+             │
+             ▼
+   Domain (business rules)
+             │
+             ▼
+Infrastructure (database, external systems)
 ```
+
+```
+docs/                                 ← Architecture documentation, ADRs, and guides
 src/
 ├── server.ts                         ← HTTP server startup & graceful shutdown
 ├── app.ts                            ← Express app, middleware stack, error handler
@@ -508,6 +530,7 @@ Enterprise Express Full uses a **layer-first** structure — code is organized b
 ### Layer-First (this project)
 
 ```
+docs/
 src/
 ├── domain/
 ├── application/
@@ -535,6 +558,7 @@ Working on a feature requires jumping across `domain/`, `application/`, `interfa
 An alternative used widely in large microservice codebases and DDD-inspired systems groups by business capability instead:
 
 ```
+docs/
 src/features/
 ├── user/
 │   ├── domain/
@@ -564,6 +588,7 @@ The dependency rules remain identical — `interfaces → application → domain
 Many teams combine both approaches: features grouped together, with shared cross-cutting concerns extracted separately.
 
 ```
+docs/
 src/
 ├── features/
 │   ├── user/
@@ -633,6 +658,7 @@ Enterprise Express Full organizes code by architectural layer. Every new feature
 ### Example: Adding an "Order" Feature
 
 ```
+docs/
 src/
 ├── domain/
 │   ├── entities/
@@ -870,6 +896,7 @@ Detailed architecture diagrams are maintained in the `docs/` folder:
 
 | Document | Contents |
 |---|---|
+| [Code Walkthrough](docs/walkthrough.md) | In-depth explanation of the codebase structure and request flow |
 | [C4 Architecture Model](docs/c4-model.md) | System Context, Container Architecture, Component Architecture |
 
 ### C4 Model Overview
@@ -1017,33 +1044,23 @@ npm run dev
 | `npm run lint` | Runs Biome linter across `src/` and `tests/`. |
 | `npm run format` | Auto-formats `src/` and `tests/` with Biome. |
 
+### Setup & Configuration Guides
+
+Detailed guides for specific environments and configurations:
+
+| Guide | Description |
+| --- | --- |
+| [WSL-Native Setup](docs/wsl-setup.md) | Optimizing your development environment for WSL2 |
+| [Database Setup](docs/database-setup.md) | Initializing SQLite and managing migrations |
+| [Configuration Management](docs/config-management.md) | Detailed breakdown of environment variables and validation |
+
 ---
 
 ## 19. Next Steps: Optional Enhancements
 
 Enterprise Express comes with a solid foundation. Below are some suggested enhancements that depend on your project scope:
 
-### 1. Consolidate Documentation Under `docs/`
-
-As the project grows, centralize supporting documentation:
-
-```
-docs/
-├── architecture.md          ← C4 model and architectural patterns
-├── adr/                     ← Architecture Decision Records
-│   ├── 0001-clean-architecture.md
-│   ├── 0002-zod-validation.md
-│   └── ...
-├── database-setup.md        ← Database initialization and migration guide
-├── config-management.md     ← Environment configuration details
-└── features/                ← Feature-specific guides (optional)
-    ├── authentication.md
-    └── sample-data-api.md
-```
-
-This keeps the root clean and makes it clear that reference materials are separate from the runtime code.
-
-### 2. Add Integration Tests
+### 1. Add Integration Tests
 
 As infrastructure grows, add repository tests that validate adapters against real resources:
 
@@ -1057,7 +1074,7 @@ tests/
 └── e2e/
 ```
 
-### 3. Extend ADRs
+### 2. Extend ADRs
 
 The `docs/adr/` folder documents significant architectural decisions. Continue recording decisions as the system evolves:
 
@@ -1067,7 +1084,7 @@ The `docs/adr/` folder documents significant architectural decisions. Continue r
 
 See [ADR template](docs/adr/0001-clean-architecture.md) for structure.
 
-### 4. Add Kubernetes Manifests
+### 3. Add Kubernetes Manifests
 
 For containerized deployment, add deployment files:
 
@@ -1081,11 +1098,11 @@ k8s/
 
 These can reference the health check endpoint for liveness/readiness probes.
 
-### 5. Standardize Error Handling Across Ports
+### 4. Standardize Error Handling Across Ports
 
 As new ports are added, ensure consistent error handling and recovery patterns in infrastructure adapters.
 
-### 6. Introduce Multi-Tenancy
+### 5. Introduce Multi-Tenancy
 
 For B2B applications, you may want to introduce multi-tenancy. This typically involves:
 - Using a tenant ID in the request context (e.g., from an authentication token or subdomain).

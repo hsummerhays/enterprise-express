@@ -48,7 +48,24 @@ The project follows Clean Architecture, which organizes code into four concentri
 
 ### Directory Structure
 
+```text
+       HTTP / Express
+             │
+             ▼
+ Interfaces (controllers, DTOs)
+             │
+             ▼
+ Application (services, use cases)
+             │
+             ▼
+   Domain (business rules)
+             │
+             ▼
+Infrastructure (database, external systems)
 ```
+
+```
+docs/                                 ← Architecture documentation, ADRs, and guides
 src/
 ├── server.ts                         ← HTTP server startup & graceful shutdown
 ├── app.ts                            ← Express app setup & middleware stack
