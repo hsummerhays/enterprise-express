@@ -6,6 +6,7 @@ Enterprise-grade TypeScript architecture for building maintainable Node.js and E
 
 Inspired by patterns from Spring Boot and ASP.NET Core.
 
+![GitHub release](https://img.shields.io/github/v/release/hsummerhays/enterprise-express)
 ![Node](https://img.shields.io/badge/node-%3E%3D20-green)
 ![TypeScript](https://img.shields.io/badge/typescript-5.x-blue)
 ![Express](https://img.shields.io/badge/express-5.x-lightgrey)
